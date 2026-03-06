@@ -19,12 +19,15 @@ const COMPUTE_API =
  */
 export async function analyzeByFilename(
   filename,
-  modelId = "wheat_plant_counter_v1"
+  modelId = "wheat_plant_counter_v1",
+  imageUrl = null
 ) {
+  const body = { filename, model_id: modelId };
+  if (imageUrl) body.image_url = imageUrl;
   const res = await fetch(`${COMPUTE_API}/api/v1/analyze/plant-count`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ filename, model_id: modelId }),
+    body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(`Analysis request failed (${res.status})`);
   return res.json(); // { job_id, status, message }

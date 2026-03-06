@@ -1,15 +1,23 @@
 // src/droneImageryService.js
 /**
  * Drone Imagery Service
- * Handles uploading GeoTIFFs and fetching from cloud storage (Drive/OneDrive)
+ * Handles uploading GeoTIFFs to the compute server and fetching from cloud storage (Drive/OneDrive).
+ *
+ * Images are stored directly on the compute server's disk.
+ * The server also writes metadata to Supabase Postgres tables
+ * (drone_flights + drone_imagery_layers).
  */
 
 import { supabase } from "./createclient";
 
+const COMPUTE_API =
+  import.meta.env.VITE_COMPUTE_API_URL ?? "http://localhost:8001";
 const TITILER_URL = import.meta.env.VITE_TITILER_URL || "http://localhost:8000";
 
 /**
- * Upload a GeoTIFF file to Supabase Storage and register in database
+ * Upload a GeoTIFF file to the compute server and register in database.
+ * The server stores the file on disk at /data/{farmId}_{YYYYMMDD}_{layerType}.tif
+ * and creates/updates drone_flights + drone_imagery_layers records in Supabase.
  */
 export const uploadDroneImagery = async ({
   file,
@@ -20,139 +28,54 @@ export const uploadDroneImagery = async ({
   droneModel = null,
   altitude = null,
 }) => {
-  try {
-    // 1. Format the filename: farmId_YYYYMMDD_layerType.tif
-    const dateStr = flightDate.replace(/-/g, "");
-    const filename = `${farmId}_${dateStr}_${layerType}.tif`;
-    const storagePath = `${farmId}/${filename}`;
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("farm_id", farmId);
+  formData.append("flight_date", flightDate);
+  formData.append("layer_type", layerType);
+  if (pilotName) formData.append("pilot_name", pilotName);
+  if (droneModel) formData.append("drone_model", droneModel);
+  if (altitude != null) formData.append("altitude", altitude.toString());
 
-    // 2. Upload to Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from("drone-imagery")
-      .upload(storagePath, file, {
-        cacheControl: "3600",
-        upsert: true, // Overwrite if exists
-      });
+  const response = await fetch(`${COMPUTE_API}/api/v1/imagery/upload`, {
+    method: "POST",
+    body: formData,
+  });
 
-    if (uploadError) throw uploadError;
-
-    // 3. Get or create the drone_flight record
-    let flightId;
-
-    // Check if flight exists for this date
-    const { data: existingFlight } = await supabase
-      .from("drone_flights")
-      .select("id")
-      .eq("farm_id", farmId)
-      .eq("flight_date", flightDate)
-      .single();
-
-    if (existingFlight) {
-      flightId = existingFlight.id;
-    } else {
-      // Create new flight record
-      const { data: newFlight, error: flightError } = await supabase
-        .from("drone_flights")
-        .insert({
-          farm_id: farmId,
-          flight_date: flightDate,
-          pilot_name: pilotName,
-          drone_model: droneModel,
-          altitude_meters: altitude,
-        })
-        .select("id")
-        .single();
-
-      if (flightError) throw flightError;
-      flightId = newFlight.id;
-    }
-
-    // 4. Get file info from TiTiler (if server is running)
-    let bounds = null;
-    let statistics = null;
-    let crs = null;
-
-    try {
-      // Get the public URL for the file
-      const { data: urlData } = supabase.storage
-        .from("drone-imagery")
-        .getPublicUrl(storagePath);
-
-      // Try to get info from TiTiler
-      const infoResponse = await fetch(
-        `${TITILER_URL}/cog/info?url=${encodeURIComponent(urlData.publicUrl)}`
-      );
-      if (infoResponse.ok) {
-        const info = await infoResponse.json();
-        crs = info.crs;
-        bounds = info.bounds;
-      }
-
-      const statsResponse = await fetch(
-        `${TITILER_URL}/cog/statistics?url=${encodeURIComponent(
-          urlData.publicUrl
-        )}`
-      );
-      if (statsResponse.ok) {
-        statistics = await statsResponse.json();
-      }
-    } catch (e) {
-      console.warn("TiTiler not available for metadata extraction:", e);
-    }
-
-    // 5. Insert or update the imagery layer record
-    const { data: layerData, error: layerError } = await supabase
-      .from("drone_imagery_layers")
-      .upsert(
-        {
-          flight_id: flightId,
-          layer_type: layerType,
-          filename: filename,
-          file_size_bytes: file.size,
-          crs: crs,
-          bounds: bounds,
-          statistics: statistics,
-        },
-        {
-          onConflict: "flight_id,layer_type",
-        }
-      )
-      .select()
-      .single();
-
-    if (layerError) throw layerError;
-
-    return {
-      success: true,
-      flight: { id: flightId, date: flightDate },
-      layer: layerData,
-      storagePath,
-    };
-  } catch (error) {
-    console.error("Error uploading drone imagery:", error);
-    throw error;
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || `Upload failed (${response.status})`);
   }
+
+  const result = await response.json();
+  return {
+    success: result.success,
+    flight: result.flight,
+    layer: result.layer,
+    filename: result.filename,
+  };
 };
 
 /**
- * Get the public URL for a drone imagery file
+ * Get the TiTiler file URL for a drone imagery file.
+ * Since images are stored on the server, TiTiler reads them via file:// protocol.
+ * This returns the filename used in TiTiler requests — NOT a browser-accessible URL.
  */
 export const getImageryUrl = (farmId, filename) => {
-  const storagePath = `${farmId}/${filename}`;
-  const { data } = supabase.storage
-    .from("drone-imagery")
-    .getPublicUrl(storagePath);
-  return data.publicUrl;
+  // For TiTiler, images are at file:///data/{filename} inside the Docker network.
+  // The frontend doesn't access files directly — it goes through TiTiler tile endpoints.
+  // Return the filename so callers can build TiTiler tile/preview URLs.
+  return filename;
 };
 
 /**
- * Get tile URL for displaying imagery via TiTiler
+ * Get tile URL for displaying imagery via TiTiler (server-side files)
  */
 export const getTileUrlFromStorage = (farmId, filename, options = {}) => {
-  const publicUrl = getImageryUrl(farmId, filename);
+  const fileUrl = `file:///data/${filename}`;
 
   const params = new URLSearchParams({
-    url: publicUrl,
+    url: fileUrl,
   });
 
   if (options.colormap) {
@@ -166,31 +89,20 @@ export const getTileUrlFromStorage = (farmId, filename, options = {}) => {
 };
 
 /**
- * Delete a drone imagery file
+ * Delete a drone imagery file from the server
  */
 export const deleteDroneImagery = async (farmId, layerId, filename) => {
-  try {
-    // Delete from storage
-    const storagePath = `${farmId}/${filename}`;
-    const { error: storageError } = await supabase.storage
-      .from("drone-imagery")
-      .remove([storagePath]);
+  const response = await fetch(
+    `${COMPUTE_API}/api/v1/imagery/${farmId}/${encodeURIComponent(filename)}`,
+    { method: "DELETE" }
+  );
 
-    if (storageError) throw storageError;
-
-    // Delete from database
-    const { error: dbError } = await supabase
-      .from("drone_imagery_layers")
-      .delete()
-      .eq("id", layerId);
-
-    if (dbError) throw dbError;
-
-    return { success: true };
-  } catch (error) {
-    console.error("Error deleting drone imagery:", error);
-    throw error;
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || `Delete failed (${response.status})`);
   }
+
+  return { success: true };
 };
 
 /**
@@ -336,36 +248,15 @@ const parseFilename = (filename) => {
 };
 
 /**
- * Check if drone-imagery bucket exists by trying to access it
- * Note: listBuckets() requires admin permissions, so we test by listing files instead
+ * Check if the compute server is reachable (replaces old ensureStorageBucket).
+ * Returns true if the server's imagery endpoint is accessible.
  */
 export const ensureStorageBucket = async () => {
   try {
-    // Try to list files in the bucket - this will fail if bucket doesn't exist
-    const { data, error } = await supabase.storage
-      .from("drone-imagery")
-      .list("", { limit: 1 });
-
-    // If we get a "Bucket not found" error, the bucket doesn't exist
-    if (error) {
-      if (
-        error.message?.includes("Bucket not found") ||
-        error.statusCode === 404
-      ) {
-        console.warn(
-          "drone-imagery bucket does not exist. Please create it in Supabase dashboard."
-        );
-        return false;
-      }
-      // Other errors (like permission issues) - assume bucket exists but we can't list
-      console.warn("Storage access warning:", error.message);
-    }
-
-    // If we got here, bucket exists (even if empty)
-    return true;
-  } catch (error) {
-    console.error("Error checking storage bucket:", error);
-    // On network errors, assume bucket might exist and let upload try
-    return true;
+    const response = await fetch(`${COMPUTE_API}/health`, { method: "GET" });
+    return response.ok;
+  } catch {
+    console.warn("Compute server not reachable for imagery upload");
+    return false;
   }
 };

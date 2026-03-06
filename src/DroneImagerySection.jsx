@@ -26,7 +26,6 @@ import {
 import {
   uploadDroneImagery,
   fetchFromGoogleDrive,
-  getImageryUrl,
   ensureStorageBucket,
 } from "./droneImageryService";
 import {
@@ -338,7 +337,8 @@ const DroneImagerySection = ({ farmId, farmName = "Farm" }) => {
     setShowAnalysisPanel(true);
 
     try {
-      const { job_id } = await analyzeByFilename(filename);
+      // Images are on the server disk — just pass the filename, no URL needed
+      const { job_id } = await analyzeByFilename(filename, "wheat_plant_counter_v1");
       setAnalysisJobId(job_id);
       setAnalysisMessage("Job submitted. Processing...");
 
@@ -419,11 +419,11 @@ const DroneImagerySection = ({ farmId, farmName = "Farm" }) => {
     setUploadProgress(10);
 
     try {
-      // Check storage bucket exists
-      const bucketExists = await ensureStorageBucket();
-      if (!bucketExists) {
+      // Check compute server is reachable
+      const serverReachable = await ensureStorageBucket();
+      if (!serverReachable) {
         toast.error(
-          "Storage bucket not configured. Please run the storage migration."
+          "Compute server not reachable. Please check that the server is running."
         );
         return;
       }
@@ -720,43 +720,14 @@ const DroneImagerySection = ({ farmId, farmName = "Farm" }) => {
 
     console.log("Using filename:", filename, "Storage:", selectedFlight.storageLocation);
 
-    // For local storage, use TiTiler with file:// protocol
-    if (selectedFlight.storageLocation === "local") {
-      return getPreviewUrl(filename, {
-        bidx: config.bidx,
-        expression: config.expression,
-        colormap: config.colormap,
-        rescale: config.rescale,
-        maxSize: 800,
-      });
-    }
-
-    // For cloud storage, get public URL and pass to TiTiler
-    const publicUrl = getImageryUrl(farmId, filename);
-    const TITILER_URL = import.meta.env.VITE_TITILER_URL || "http://localhost:8000";
-    const params = new URLSearchParams({
-      url: publicUrl,
-      max_size: "800",
+    // All imagery is stored on the server — always use TiTiler with file:// protocol
+    return getPreviewUrl(filename, {
+      bidx: config.bidx,
+      expression: config.expression,
+      colormap: config.colormap,
+      rescale: config.rescale,
+      maxSize: 800,
     });
-
-    // Add band selection - TiTiler expects separate bidx params
-    if (config.bidx) {
-      const bands = config.bidx.split(",");
-      bands.forEach((band) => {
-        params.append("bidx", band.trim());
-      });
-    }
-    if (config.expression) {
-      params.append("expression", config.expression);
-    }
-    if (config.colormap) {
-      params.append("colormap_name", config.colormap);
-    }
-    if (config.rescale) {
-      params.append("rescale", config.rescale);
-    }
-
-    return `${TITILER_URL}/cog/preview?${params.toString()}`;
   }, [selectedFlight, activeLayerType, farmId, serverOnline]);
 
   // Get filename for the current flight (used by tile URL and other functions)
