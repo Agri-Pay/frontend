@@ -15,6 +15,58 @@ const COMPUTE_API =
 const TITILER_URL = import.meta.env.VITE_TITILER_URL || "http://localhost:8000";
 
 /**
+ * Upload a FormData payload with real progress tracking via XMLHttpRequest.
+ * @param {string} url - The endpoint to POST to
+ * @param {FormData} formData - The form data to upload
+ * @param {function|null} onProgress - Called with {loaded, total, percent} during upload
+ * @returns {Promise<object>} Parsed JSON response
+ */
+const uploadWithProgress = (url, formData, onProgress) => {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+
+    if (onProgress) {
+      xhr.upload.addEventListener("progress", (e) => {
+        if (e.lengthComputable) {
+          onProgress({
+            loaded: e.loaded,
+            total: e.total,
+            percent: Math.round((e.loaded / e.total) * 100),
+          });
+        }
+      });
+    }
+
+    xhr.addEventListener("load", () => {
+      try {
+        const data = JSON.parse(xhr.responseText);
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(data);
+        } else {
+          reject(new Error(data.detail || `Upload failed (${xhr.status})`));
+        }
+      } catch {
+        reject(new Error(`Upload failed (${xhr.status})`));
+      }
+    });
+
+    xhr.addEventListener("error", () =>
+      reject(new Error("Network error during upload. Check your connection."))
+    );
+    xhr.addEventListener("abort", () =>
+      reject(new Error("Upload was cancelled"))
+    );
+    xhr.addEventListener("timeout", () =>
+      reject(new Error("Upload timed out. The file may be too large for your connection."))
+    );
+
+    xhr.open("POST", url);
+    xhr.timeout = 0; // No timeout — large GeoTIFFs can take a long time
+    xhr.send(formData);
+  });
+};
+
+/**
  * Upload a GeoTIFF file to the compute server and register in database.
  * The server stores the file on disk at /data/{farmId}_{YYYYMMDD}_{layerType}.tif
  * and creates/updates drone_flights + drone_imagery_layers records in Supabase.
@@ -27,6 +79,7 @@ export const uploadDroneImagery = async ({
   pilotName = null,
   droneModel = null,
   altitude = null,
+  onProgress = null,
 }) => {
   const formData = new FormData();
   formData.append("file", file);
@@ -37,17 +90,11 @@ export const uploadDroneImagery = async ({
   if (droneModel) formData.append("drone_model", droneModel);
   if (altitude != null) formData.append("altitude", altitude.toString());
 
-  const response = await fetch(`${COMPUTE_API}/api/v1/imagery/upload`, {
-    method: "POST",
-    body: formData,
-  });
-
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error(err.detail || `Upload failed (${response.status})`);
-  }
-
-  const result = await response.json();
+  const result = await uploadWithProgress(
+    `${COMPUTE_API}/api/v1/imagery/upload`,
+    formData,
+    onProgress,
+  );
   return {
     success: result.success,
     flight: result.flight,

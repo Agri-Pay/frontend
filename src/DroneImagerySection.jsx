@@ -416,7 +416,7 @@ const DroneImagerySection = ({ farmId, farmName = "Farm" }) => {
     }
 
     setUploading(true);
-    setUploadProgress(10);
+    setUploadProgress(0);
 
     try {
       // Check compute server is reachable
@@ -428,8 +428,6 @@ const DroneImagerySection = ({ farmId, farmName = "Farm" }) => {
         return;
       }
 
-      setUploadProgress(30);
-
       const result = await uploadDroneImagery({
         file: uploadForm.file,
         farmId,
@@ -437,9 +435,8 @@ const DroneImagerySection = ({ farmId, farmName = "Farm" }) => {
         layerType: uploadForm.layerType,
         pilotName: uploadForm.pilotName || null,
         droneModel: uploadForm.droneModel || null,
+        onProgress: ({ percent }) => setUploadProgress(percent),
       });
-
-      setUploadProgress(90);
 
       if (result.success) {
         toast.success(
@@ -984,7 +981,7 @@ const DroneImagerySection = ({ farmId, farmName = "Farm" }) => {
               title={
                 isLocal
                   ? "TiTiler server offline - run docker-compose up"
-                  : "Local setup required"
+                  : "TiTiler server not reachable"
               }
             >
               ●
@@ -1273,21 +1270,12 @@ const DroneImagerySection = ({ farmId, farmName = "Farm" }) => {
         {!serverOnline ? (
           <div className="drone-placeholder">
             <span className="material-symbols-outlined">cloud_off</span>
-            {isLocal ? (
-              <>
-                <p>TiTiler server is offline</p>
-                <code className="server-command">docker-compose up -d</code>
-                <small>Run this command in the titiler-local folder</small>
-              </>
-            ) : (
-              <>
-                <p>Drone imagery requires local setup</p>
-                <small>
-                  This feature is available in development mode only. Run the
-                  app locally with TiTiler to view drone imagery.
-                </small>
-              </>
-            )}
+            <p>TiTiler server is offline</p>
+            <small>
+              {isLocal
+                ? "Run docker-compose up -d in the titiler-local folder"
+                : "The imagery server is not reachable. Check that the server and tunnel are running."}
+            </small>
           </div>
         ) : droneFlights.length === 0 ? (
           <div className="drone-placeholder">
@@ -1299,7 +1287,7 @@ const DroneImagerySection = ({ farmId, farmName = "Farm" }) => {
           <div className="drone-placeholder">
             <span className="material-symbols-outlined">broken_image</span>
             <p>Could not load {activeLayerType.toUpperCase()} layer</p>
-            <small>Check that the file exists in titiler-local/imagery/</small>
+            <small>Check that the file exists on the server in the imagery directory</small>
           </div>
         ) : useMapView && mapBounds && tileUrl ? (
           /* Interactive Map View */
@@ -1852,7 +1840,14 @@ const DroneImagerySection = ({ farmId, farmName = "Farm" }) => {
                             style={{ width: `${uploadProgress}%` }}
                           ></div>
                         </div>
-                        <span>Uploading... {uploadProgress}%</span>
+                        <span>
+                          {uploadProgress < 100
+                            ? `Uploading... ${uploadProgress}%`
+                            : "Processing on server..."}
+                          {uploadForm.file && (
+                            <> — {(uploadForm.file.size / (1024 * 1024)).toFixed(1)} MB</>
+                          )}
+                        </span>
                       </div>
                     )}
                   </>
