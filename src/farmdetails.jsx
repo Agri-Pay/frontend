@@ -246,6 +246,7 @@ import {
 import DroneImagerySection from "./DroneImagerySection";
 import SatelliteImagerySection from "./SatelliteImagerySection";
 import IoTSensorSection from "./IoTSensorSection";
+import CropStageSection from "./CropStageSection";
 import { toast } from "react-hot-toast";
 
 // Import Chart.js components
@@ -880,82 +881,16 @@ const FarmDetailsPage = () => {
           </p>
         </div>
         {activeCycle ? (
-          // --- MILESTONE VIEW ---
-          <div className="milestone-section">
-            <h2>
-              Ongoing Cycle:{" "}
-              {availableCrops.find((c) => c.id === activeCycle.crop_id)?.name}
-            </h2>
-            <div className="milestone-list">
-              {cycleMilestones.map((ms) => (
-                <div key={ms.id} className="milestone-item">
-                  <div className="milestone-info">
-                    <h4>{ms.milestone_templates.name}</h4>
-                    <p>{ms.milestone_templates.description}</p>
-                  </div>
-                  <div className="milestone-status">
-                    {role === "admin" ? (
-                      // UI for Admin (Technical Officer)
-                      <>
-                        <span
-                          className={`status-pill role-view ${getStatusColor(
-                            ms.status
-                          )}`}
-                        >
-                          {getStatusDisplay(ms.status)}
-                        </span>
-                        {!isVerifiedStatus(ms.status) ? (
-                          <button
-                            onClick={() => handleApproveClick(ms)}
-                            className="verify-btn verify"
-                            disabled={!isPendingVerification(ms.status)} // Only allow verification if farmer marked it complete
-                          >
-                            Verify
-                          </button>
-                        ) : (
-                          <span className="verified-locked">
-                            <span className="material-symbols-outlined">
-                              lock
-                            </span>
-                            Verified (Locked)
-                          </span>
-                        )}
-                      </>
-                    ) : (
-                      // UI for Farmer - can only set to not_started, in_progress, or pending_verification
-                      <>
-                        <select
-                          value={ms.status}
-                          onChange={(e) =>
-                            handleStatusChange(ms.id, e.target.value)
-                          }
-                          disabled={isVerifiedStatus(ms.status)} // Cannot change after verified
-                        >
-                          <option value={MILESTONE_STATUS.NOT_STARTED}>
-                            Not Started
-                          </option>
-                          <option value={MILESTONE_STATUS.IN_PROGRESS}>
-                            In Progress
-                          </option>
-                          <option value={MILESTONE_STATUS.PENDING_VERIFICATION}>
-                            Completed - Awaiting Verification
-                          </option>
-                        </select>
-                        <span
-                          className={`verified-badge ${isVerifiedStatus(ms.status) ? "verified" : ""
-                            }`}
-                        >
-                          {isVerifiedStatus(ms.status)
-                            ? "Verified"
-                            : getStatusDisplay(ms.status)}
-                        </span>
-                      </>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          // --- NEW: Crop Stage Section (Farmer Input + Milestones Achieved) ---
+          <CropStageSection
+            activeCycle={activeCycle}
+            cycleMilestones={cycleMilestones}
+            availableCrops={availableCrops}
+            role={role}
+            farmId={farmId}
+            onStatusChange={handleStatusChange}
+            onApprove={handleApproveClick}
+          />
         ) : (
           // --- START CYCLE VIEW ---
           role === "farmer" && (
