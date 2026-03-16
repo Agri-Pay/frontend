@@ -1,4 +1,4 @@
-// src/pages/DashboardPage.jsx
+﻿// src/pages/DashboardPage.jsx
 import React from "react";
 import Sidebar from "./sidebar";
 import "./dashboard.css";
@@ -395,165 +395,191 @@ const DashboardPage = () => {
       <div className="dashboard-container">
         <Sidebar />
         <main className="dashboard-main">
-          <Spinner></Spinner>
+          <Spinner />
         </main>
       </div>
     );
   }
 
+  // Helper: map milestone status → chip class + label
+  const chipClass = (status) => {
+    const s = (status || "").toLowerCase().replace(/[_ ]/g, "-");
+    if (s === "in-progress") return "in-progress";
+    if (s.includes("pending")) return "pending-verif";
+    return "not-started";
+  };
+  const chipLabel = (status) => {
+    const s = (status || "").toLowerCase();
+    if (s === "in_progress" || s === "in-progress") return "In Progress";
+    if (s.includes("pending")) return "Pending Verification";
+    return "Not Started";
+  };
+
   return (
     <div className="dashboard-container">
       <Sidebar />
       <main className="dashboard-main">
-        <header className="dashboard-header">
-          <div>
-            <h1 className="dashboard-title">Dashboard</h1>
-            {/* Display the fetched first name */}
-            <p className="dashboard-subtitle">Welcome back, {getFirstName()}</p>
-          </div>
-          <div className="header-actions">
-            <button
-              className="add-farm-btn"
-              onClick={() => setIsModalOpen(true)}
-            >
-              <span className="material-symbols-outlined">add</span>
-              Add New Farm
-            </button>
-            {/* --- NEW LOGOUT BUTTON --- */}
-            <button className="logout-btn" onClick={handleLogout}>
-              <span className="material-symbols-outlined">logout</span>
-              Logout
-            </button>
-          </div>
-        </header>
-        <section className="dashboard-section">
-          <h2 className="section-title">Farm Summary</h2>
-          <div className="summary-cards">
-            <div className="summary-card">
-              <div>
-                <p className="card-label">Total Farms</p>
-                <p className="card-value">{farmSummary.count}</p>
-                <p className="card-description">
-                  Manage your farms and their details
-                </p>
+
+        {/* ── Hero Header ── */}
+        <div className="dash-hero">
+          <div className="dash-hero-accent" />
+          <div className="dash-hero-body">
+            <div className="dash-hero-left">
+              <div className="dash-hero-avatar">
+                <span className="material-symbols-outlined">person</span>
               </div>
-              <img
-                src={farmImages.first || "https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=400"}
-                alt="Farm landscape"
-              />
+              <div>
+                <p className="dash-hero-eyebrow">Farmer Dashboard</p>
+                <h1 className="dash-hero-title">Welcome back, {getFirstName().toUpperCase()} </h1>
+                <p className="dash-hero-subtitle">Here's what's happening across your farms today.</p>
+              </div>
             </div>
-            <div className="summary-card">
-              <div>
-                <p className="card-label">Total Acreage</p>
-                <p className="card-value">{farmSummary.totalAcreage} acres</p>
-                <p className="card-description">Total land under cultivation</p>
+            <div className="dash-hero-actions">
+              <button className="add-farm-btn" onClick={() => setIsModalOpen(true)}>
+                <span className="material-symbols-outlined">add</span>
+                Add New Farm
+              </button>
+              <button className="logout-btn" onClick={handleLogout}>
+                <span className="material-symbols-outlined">logout</span>
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Stat Cards ── */}
+        <section className="dashboard-section">
+          <div className="section-heading-row">
+            <span className="material-symbols-outlined">bar_chart</span>
+            <h2>Overview</h2>
+          </div>
+          <div className="stat-cards-grid">
+            <div className="stat-card sc-green">
+              <div className="stat-card-icon">
+                <span className="material-symbols-outlined">agriculture</span>
               </div>
-              <img
-                src={farmImages.second || "https://images.unsplash.com/photo-1444930694458-01bab732b857?q=80&w=400"}
-                alt="Aerial farm view"
-              />
+              <p className="stat-card-label">Total Farms</p>
+              <p className="stat-card-value">{farmSummary.count}</p>
+              <p className="stat-card-desc">Registered &amp; active</p>
+            </div>
+            <div className="stat-card sc-blue">
+              <div className="stat-card-icon">
+                <span className="material-symbols-outlined">landscape</span>
+              </div>
+              <p className="stat-card-label">Total Acreage</p>
+              <p className="stat-card-value">{farmSummary.totalAcreage}</p>
+              <p className="stat-card-desc">Acres under cultivation</p>
+            </div>
+            <div className="stat-card sc-amber">
+              <div className="stat-card-icon">
+                <span className="material-symbols-outlined">pending_actions</span>
+              </div>
+              <p className="stat-card-label">Pending Milestones</p>
+              <p className="stat-card-value">{milestoneSummary.upcoming.length}</p>
+              <p className="stat-card-desc">Awaiting completion</p>
+            </div>
+            <div className="stat-card sc-purple">
+              <div className="stat-card-icon">
+                <span className="material-symbols-outlined">payments</span>
+              </div>
+              <p className="stat-card-label">Verified Milestones</p>
+              <p className="stat-card-value">{payments.length}</p>
+              <p className="stat-card-desc">Payments processed</p>
             </div>
           </div>
         </section>
 
-        {/* The rest of your dashboard content remains the same */}
-        {/* <section className="dashboard-section">
-          <h2 className="section-title">Farm Summary</h2>
-          <div className="summary-cards">
-            <div className="summary-card">
-              <div>
-                <p className="card-label">Total Farms</p>
-                <p className="card-value">3</p>
-                <p className="card-description">
-                  Manage your farms and their details
-                </p>
-              </div>
-              <img
-                src="https://via.placeholder.com/100x60"
-                alt="Farm landscape"
-              />
-            </div>
-            <div className="summary-card">
-              <div>
-                <p className="card-label">Total Acreage</p>
-                <p className="card-value">150 acres</p>
-                <p className="card-description">Total land under cultivation</p>
-              </div>
-              <img
-                src="https://via.placeholder.com/100x60"
-                alt="Aerial farm view"
-              />
-            </div>
-          </div>
-        </section> */}
-        {/* <section className="dashboard-section">
-          <h2 className="section-title">Your Farms</h2>
-          <div className="farms-list">
-            {farms.length > 0 ? (
-              farms.map((farm) => (
-                // The structure inside the Link is updated
-                <Link
-                  to={`/farm/${farm.id}`}
-                  key={farm.id}
-                  className="farm-card-link"
-                >
-                  <div className="farm-card-content">
-                    <h3>{farm.name}</h3>
-                    <p>
-                      View Details
-                      <span className="material-symbols-outlined">
-                        arrow_forward
-                      </span>
-                    </p>
-                  </div>
-                </Link>
-              ))
-            ) : (
-              <div className="no-farms-message">
-                <p>You haven't added any farms yet.</p>
-                <p>Click "Add New Farm" to get started.</p>
-              </div>
-            )}
-          </div>
-        </section> */}
-
+        {/* ── Milestone Progress ── */}
         <section className="dashboard-section">
-          <h2 className="section-title">Overall Milestone Progress</h2>
+          <div className="section-heading-row">
+            <span className="material-symbols-outlined">track_changes</span>
+            <h2>Overall Milestone Progress</h2>
+          </div>
           <div className="progress-card">
-            <div className="progress-details">
-              <span>{milestoneSummary.progress}% Complete</span>
+            <div className="progress-header">
+              <p className="progress-label">Milestones verified across all active cycles</p>
+              <p className="progress-pct">{milestoneSummary.progress}%</p>
             </div>
-            <div className="main-progress-bar-container">
-              <div
-                className="main-progress-bar"
-                style={{ width: `${milestoneSummary.progress}%` }}
-              ></div>
+            <div className="progress-track">
+              <div className="progress-fill" style={{ width: `${milestoneSummary.progress}%` }} />
+            </div>
+            <p className="progress-sub">
+              {payments.length} of {payments.length + milestoneSummary.upcoming.length} milestones completed
+            </p>
+          </div>
+        </section>
+
+        {/* ── Farm Images Summary ── */}
+        <section className="dashboard-section">
+          <div className="section-heading-row">
+            <span className="material-symbols-outlined">satellite_alt</span>
+            <h2>Farm Summary</h2>
+          </div>
+          <div className="summary-cards">
+            <div className="summary-card">
+              <img
+                className="summary-card-image"
+                src={farmImages.first || "https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=600"}
+                alt="Farm aerial view"
+              />
+              <div className="summary-card-body">
+                <p className="summary-card-label">Farms Registered</p>
+                <p className="summary-card-value">{farmSummary.count}</p>
+                <p className="summary-card-desc">Navigate to a farm to view live data</p>
+              </div>
+            </div>
+            <div className="summary-card">
+              <img
+                className="summary-card-image"
+                src={farmImages.second || "https://images.unsplash.com/photo-1444930694458-01bab732b857?q=80&w=600"}
+                alt="Aerial farm view"
+              />
+              <div className="summary-card-body">
+                <p className="summary-card-label">Total Land Area</p>
+                <p className="summary-card-value">{farmSummary.totalAcreage} ac</p>
+                <p className="summary-card-desc">Total land under management</p>
+              </div>
             </div>
           </div>
         </section>
 
-        {/* UPCOMING MILESTONES (Replaces old static table) */}
+        {/* ── Upcoming Milestones ── */}
         <section className="dashboard-section">
-          <h2 className="section-title">Upcoming Milestones</h2>
+          <div className="section-heading-row">
+            <span className="material-symbols-outlined">task_alt</span>
+            <h2>Upcoming Milestones</h2>
+          </div>
           {milestoneSummary.upcoming.length > 0 ? (
-            <div className="table-card">
-              {/* You can build a table here similar to the old one */}
-              {/* For now, a simple list: */}
-              <ul>
-                {milestoneSummary.upcoming.slice(0, 5).map((m) => (
-                  <li key={m.id}>
-                    {m.crop_cycles.farms.name} - {m.milestone_templates?.name || "Unnamed Milestone"}
-                  </li>
-                ))}
-              </ul>
+            <div className="milestone-list-card">
+              {milestoneSummary.upcoming.slice(0, 6).map((m, i) => (
+                <div className="milestone-list-item" key={m.id}>
+                  <span className={`ms-dot ${chipClass(m.status) === "in-progress" ? "active" : "pending"}`} />
+                  <div className="milestone-list-text">
+                    <p className="milestone-list-farm">{m.crop_cycles?.farms?.name || "—"}</p>
+                    <p className="milestone-list-name">{m.milestone_templates?.name || "Unnamed Milestone"}</p>
+                  </div>
+                  <span className={`ms-status-chip ${chipClass(m.status)}`}>
+                    {chipLabel(m.status)}
+                  </span>
+                </div>
+              ))}
             </div>
           ) : (
-            <p>No upcoming milestones!</p>
+            <div className="milestone-list-card">
+              <div className="milestone-empty">
+                <span className="material-symbols-outlined">check_circle</span>
+                <p>All milestones are up to date!</p>
+              </div>
+            </div>
           )}
         </section>
 
+        {/* ── Payment Status ── */}
         <section className="dashboard-section">
-          <h2 className="section-title">Payment Status</h2>
+          <div className="section-heading-row">
+            <span className="material-symbols-outlined">receipt_long</span>
+            <h2>Payment Status</h2>
+          </div>
           <div className="table-card">
             <table>
               <thead>
@@ -561,53 +587,49 @@ const DashboardPage = () => {
                   <th>Farm</th>
                   <th>Milestone</th>
                   <th>Status</th>
-                  <th>Payment Date</th>
+                  <th>Date</th>
                 </tr>
               </thead>
               <tbody>
                 {payments.length > 0 ? (
                   payments.map((payment) => (
                     <tr key={payment.id}>
-                      <td>{payment.crop_cycles?.farms?.name || "N/A"}</td>
+                      <td>{payment.crop_cycles?.farms?.name || "—"}</td>
                       <td>Milestone Verified</td>
                       <td>
-                        <span className="status-pill paid">Paid</span>
+                        <span className="status-pill paid">
+                          <span className="material-symbols-outlined" style={{ fontSize: "0.8rem" }}>check_circle</span>
+                          Paid
+                        </span>
                       </td>
-                      <td>
-                        {new Date(payment.updated_at).toLocaleDateString()}
-                      </td>
+                      <td>{new Date(payment.updated_at).toLocaleDateString()}</td>
                     </tr>
                   ))
                 ) : (
-                  <tr>
-                    <td colSpan="4" style={{ textAlign: "center" }}>
-                      No payments processed yet
-                    </td>
+                  <tr className="table-empty">
+                    <td colSpan="4">No payments processed yet</td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
         </section>
+
       </main>
+
+      {/* ── Add Farm Modal ── */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
         <div className="modal-body">
-          <h2>How would you like to add your farm?</h2>
-          <p>Choose a method to define your farm's boundaries.</p>
+          <h2>Add a New Farm</h2>
+          <p>Choose how you'd like to define your farm's boundaries.</p>
           <div className="modal-options">
-            <button
-              className="modal-option-btn"
-              onClick={() => navigate("/create-farm")}
-            >
-              <span className="material-symbols-outlined">edit</span>
+            <button className="modal-option-btn" onClick={() => navigate("/create-farm")}>
+              <span className="material-symbols-outlined">edit_location</span>
               Draw Polygon on Map
             </button>
-            <button
-              className="modal-option-btn"
-              onClick={() => navigate("/upload-kml")}
-            >
+            <button className="modal-option-btn" onClick={() => navigate("/upload-kml")}>
               <span className="material-symbols-outlined">upload_file</span>
-              Enter Coordinates (KML)
+              Upload Coordinates (KML)
             </button>
           </div>
         </div>

@@ -912,15 +912,31 @@ const FarmDetailsPage = () => {
     <div className="farm-details-container">
       <Sidebar />
       <main className="farm-details-main">
-        <div className="page-title-section">
-          <h1 className="farm-name-title">{farm?.name}</h1>
-          <p className="farm-subtitle">
-            Live farm metrics and satellite imagery
-          </p>
-        </div>
-        {activeCycle ? (
 
-          // --- NEW: Crop Stage Section (Farmer Input + Milestones Achieved) ---
+        {/* ── Page Header ── */}
+        <div className="fd-hero">
+          <div className="fd-hero-accent" />
+          <div className="fd-hero-content">
+            <div className="fd-hero-top">
+              <div>
+                <p className="fd-hero-label">Farm Overview</p>
+                <h1 className="farm-name-title">{farm?.name}</h1>
+                <p className="farm-subtitle">
+                  Live metrics, satellite imagery &amp; AI-powered insights
+                </p>
+              </div>
+              <div className="fd-hero-badges">
+                <span className="fd-status-badge">
+                  <span className="fd-status-dot" />
+                  Live
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Crop Cycle / Milestone Section ── */}
+        {activeCycle ? (
           <CropStageSection
             activeCycle={activeCycle}
             cycleMilestones={cycleMilestones}
@@ -930,27 +946,30 @@ const FarmDetailsPage = () => {
             onStatusChange={handleStatusChange}
             onApprove={handleApproveClick}
           />
-// >>>>>>> milestones
         ) : (
-          // --- START CYCLE VIEW ---
           role === "farmer" && (
             <div className="start-cycle-card">
+              <div className="start-cycle-icon">
+                <span className="material-symbols-outlined">agriculture</span>
+              </div>
               <h3>No Active Crop Cycle</h3>
-              <p>
-                Start a new cycle to begin tracking milestones for this farm.
-              </p>
-              <button
-                className="start-btn"
-                onClick={() => setIsStartCycleModalOpen(true)}
-              >
+              <p>Start a new crop cycle to begin tracking growth stages, recording field inputs, and unlocking milestone-based payments for this farm.</p>
+              <button className="start-btn" onClick={() => setIsStartCycleModalOpen(true)}>
+                <span className="material-symbols-outlined">add_circle</span>
                 Start New Crop Cycle
               </button>
             </div>
           )
         )}
 
-        <div className="data-grid">
-          {/* Weather Card */}
+        {/* ── Live Conditions ── */}
+        <p className="section-heading">
+          <span className="material-symbols-outlined">sensors</span>
+          Live Conditions
+        </p>
+        <div className="data-grid" style={{ marginBottom: "2rem" }}>
+
+          {/* Weather */}
           <div className="data-card weather-card">
             <h3>Live Weather</h3>
             {weather && weather.length > 0 ? (
@@ -959,128 +978,179 @@ const FarmDetailsPage = () => {
                   src={`http://openweathermap.org/img/wn/${weather[0].weather[0].icon}@4x.png`}
                   alt="weather icon"
                 />
-                <div className="weather-details">
-                  <p className="temperature">
-                    {Math.round(weather[0].main.temp - 273.15)}°C
-                  </p>
-                  <p className="description">
-                    {weather[0].weather[0].description}
-                  </p>
+                <div>
+                  <p className="temperature">{Math.round(weather[0].main.temp - 273.15)}°C</p>
+                  <p className="description">{weather[0].weather[0].description}</p>
                 </div>
               </div>
-            ) : loading ? (
-              <p>Loading weather...</p>
             ) : (
-              <p style={{ color: "#64748b", fontSize: "0.875rem" }}>
-                Weather data unavailable. Check console for details.
+              <p className="data-unavailable">
+                <span className="material-symbols-outlined">cloud_off</span>
+                Weather data unavailable
               </p>
             )}
           </div>
 
-          {/* Soil Data Card */}
+          {/* Current Conditions */}
+          <div className="data-card current-weather-card">
+            <h3>Atmospheric Conditions</h3>
+            {currentWeather ? (
+              <div className="current-weather-content">
+                <div className="weather-grid">
+                  <div className="weather-stat">
+                    <span className="material-symbols-outlined">air</span>
+                    <div>
+                      <p className="stat-label">Wind Speed</p>
+                      <p className="stat-value">{currentWeather.wind?.speed?.toFixed(1) || 0} m/s</p>
+                    </div>
+                  </div>
+                  <div className="weather-stat">
+                    <span className="material-symbols-outlined">humidity_percentage</span>
+                    <div>
+                      <p className="stat-label">Humidity</p>
+                      <p className="stat-value">{currentWeather.main?.humidity || 0}%</p>
+                    </div>
+                  </div>
+                  <div className="weather-stat">
+                    <span className="material-symbols-outlined">compress</span>
+                    <div>
+                      <p className="stat-label">Pressure</p>
+                      <p className="stat-value">{currentWeather.main?.pressure || 0} hPa</p>
+                    </div>
+                  </div>
+                  <div className="weather-stat">
+                    <span className="material-symbols-outlined">visibility</span>
+                    <div>
+                      <p className="stat-label">Cloud Cover</p>
+                      <p className="stat-value">{currentWeather.clouds?.all || 0}%</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="data-unavailable">
+                <span className="material-symbols-outlined">cloud_off</span>
+                Current conditions unavailable
+              </p>
+            )}
+          </div>
+
+          {/* Soil Data */}
           <div className="data-card soil-card">
-            <h3>Live Soil Data</h3>
+            <h3>Soil Data</h3>
             {soil ? (
               <div className="soil-content">
                 <div className="metric-item">
-                  <span className="material-symbols-outlined metric-icon">
-                    device_thermostat
-                  </span>
+                  <span className="material-symbols-outlined metric-icon" style={{ backgroundColor: "#fef3c7", color: "#d97706" }}>device_thermostat</span>
                   <div>
-                    <p className="metric-label">Temperature (10cm)</p>
-                    <p className="metric-value">
-                      {Math.round(soil.t10 - 273.15)}°C
-                    </p>
+                    <p className="metric-label">Temperature (10 cm)</p>
+                    <p className="metric-value">{Math.round(soil.t10 - 273.15)}°C</p>
                   </div>
                 </div>
                 <div className="metric-item">
-                  <span className="material-symbols-outlined metric-icon">
-                    water_drop
-                  </span>
+                  <span className="material-symbols-outlined metric-icon" style={{ backgroundColor: "#eff6ff", color: "#3b82f6" }}>water_drop</span>
                   <div>
                     <p className="metric-label">Moisture</p>
-                    <p className="metric-value">
-                      {(soil.moisture * 100).toFixed(1)}%
-                    </p>
+                    <p className="metric-value">{(soil.moisture * 100).toFixed(1)}%</p>
                   </div>
                 </div>
               </div>
-            ) : loading ? (
-              <p>Loading soil data...</p>
             ) : (
-              <p style={{ color: "#64748b", fontSize: "0.875rem" }}>
-                Soil data unavailable. Check console for details.
+              <p className="data-unavailable">
+                <span className="material-symbols-outlined">layers_clear</span>
+                Soil data unavailable
               </p>
             )}
           </div>
 
-          {/* NDVI Card (from Sentinel) */}
+          {/* UV Index */}
+          <div className="data-card uvi-card">
+            <h3>UV Index</h3>
+            {uvi ? (
+              <div className="metric-item" style={{ marginBottom: 0 }}>
+                <span className="material-symbols-outlined metric-icon" style={{ backgroundColor: "#fef3c7", color: "#f59e0b" }}>wb_sunny</span>
+                <div>
+                  <p className="metric-label">Current UV Index</p>
+                  <p className="metric-value">{uvi.uvi?.toFixed(1) || "N/A"}</p>
+                  <p style={{ fontSize: "0.75rem", color: "#94a3b8", margin: "0.125rem 0 0", fontWeight: 500 }}>
+                    {uvi.uvi <= 2 ? "Low" : uvi.uvi <= 5 ? "Moderate" : uvi.uvi <= 7 ? "High" : uvi.uvi <= 10 ? "Very High" : "Extreme"}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <p className="data-unavailable">
+                <span className="material-symbols-outlined">wb_sunny</span>
+                UV index unavailable
+              </p>
+            )}
+          </div>
+
+        </div>
+
+        {/* ── Vegetation Indices ── */}
+        <p className="section-heading">
+          <span className="material-symbols-outlined">grass</span>
+          Vegetation Indices
+        </p>
+        <div className="data-grid" style={{ marginBottom: "2rem" }}>
+
+          {/* NDVI */}
           <div className="data-card ndvi-card">
-            <h3>NDVI</h3>
+            <h3>NDVI — Vegetation Health</h3>
             {sentinelStats?.ndvi && isValidNumber(sentinelStats.ndvi.mean) ? (
               <div className="vegetation-stat-content">
                 <div className="vegetation-main-value">
-                  <span className="veg-value">
-                    {safeToFixed(sentinelStats.ndvi.mean, 3)}
-                  </span>
-                  <span
-                    className="veg-badge"
-                    style={{
-                      backgroundColor:
-                        sentinelStats.ndvi.mean > 0.5
-                          ? "#22c55e"
-                          : sentinelStats.ndvi.mean > 0.3
-                            ? "#eab308"
-                            : "#ef4444",
-                    }}
-                  >
-                    {sentinelStats.ndvi.mean > 0.5
-                      ? "Healthy"
-                      : sentinelStats.ndvi.mean > 0.3
-                        ? "Moderate"
-                        : "Low"}
+                  <span className="veg-value">{safeToFixed(sentinelStats.ndvi.mean, 3)}</span>
+                  <span className="veg-badge" style={{ backgroundColor: sentinelStats.ndvi.mean > 0.5 ? "#22c55e" : sentinelStats.ndvi.mean > 0.3 ? "#eab308" : "#ef4444" }}>
+                    {sentinelStats.ndvi.mean > 0.5 ? "Healthy" : sentinelStats.ndvi.mean > 0.3 ? "Moderate" : "Low"}
                   </span>
                 </div>
-                <p className="veg-description">Vegetation Health Index</p>
+                <p className="veg-description">Normalized Difference Vegetation Index</p>
                 <div className="veg-range">
                   <span>Min: {safeToFixed(sentinelStats.ndvi.min, 2)}</span>
                   <span>Max: {safeToFixed(sentinelStats.ndvi.max, 2)}</span>
                 </div>
               </div>
             ) : sentinelLoading ? (
-              <p>Loading NDVI...</p>
+              <p style={{ color: "#94a3b8", fontSize: "0.875rem" }}>Loading NDVI…</p>
             ) : (
-              <p style={{ color: "#64748b", fontSize: "0.875rem" }}>
-                NDVI data unavailable.
-              </p>
+              <p className="data-unavailable"><span className="material-symbols-outlined">eco</span>NDVI data unavailable</p>
             )}
           </div>
 
-          {/* LAI Card (from Sentinel) */}
+          {/* SAVI */}
+          <div className="data-card savi-card">
+            <h3>SAVI — Soil-Adjusted</h3>
+            {sentinelStats?.savi && isValidNumber(sentinelStats.savi.mean) ? (
+              <div className="vegetation-stat-content">
+                <div className="vegetation-main-value">
+                  <span className="veg-value">{safeToFixed(sentinelStats.savi.mean, 3)}</span>
+                  <span className="veg-badge" style={{ backgroundColor: sentinelStats.savi.mean > 0.4 ? "#22c55e" : sentinelStats.savi.mean > 0.2 ? "#eab308" : "#ef4444" }}>
+                    {sentinelStats.savi.mean > 0.4 ? "Good" : sentinelStats.savi.mean > 0.2 ? "Fair" : "Poor"}
+                  </span>
+                </div>
+                <p className="veg-description">Soil-Adjusted Vegetation Index</p>
+                <div className="veg-range">
+                  <span>Min: {safeToFixed(sentinelStats.savi.min, 2)}</span>
+                  <span>Max: {safeToFixed(sentinelStats.savi.max, 2)}</span>
+                </div>
+              </div>
+            ) : sentinelLoading ? (
+              <p style={{ color: "#94a3b8", fontSize: "0.875rem" }}>Loading SAVI…</p>
+            ) : (
+              <p className="data-unavailable"><span className="material-symbols-outlined">grass</span>SAVI data unavailable</p>
+            )}
+          </div>
+
+          {/* LAI */}
           <div className="data-card lai-card">
-            <h3>LAI</h3>
+            <h3>LAI — Leaf Area</h3>
             {sentinelStats?.lai && isValidNumber(sentinelStats.lai.mean) ? (
               <div className="vegetation-stat-content">
                 <div className="vegetation-main-value">
-                  <span className="veg-value">
-                    {safeToFixed(sentinelStats.lai.mean, 2)}
-                  </span>
-                  <span
-                    className="veg-badge"
-                    style={{
-                      backgroundColor:
-                        sentinelStats.lai.mean > 3
-                          ? "#22c55e"
-                          : sentinelStats.lai.mean > 1.5
-                            ? "#eab308"
-                            : "#ef4444",
-                    }}
-                  >
-                    {sentinelStats.lai.mean > 3
-                      ? "Dense"
-                      : sentinelStats.lai.mean > 1.5
-                        ? "Growing"
-                        : "Sparse"}
+                  <span className="veg-value">{safeToFixed(sentinelStats.lai.mean, 2)}</span>
+                  <span className="veg-badge" style={{ backgroundColor: sentinelStats.lai.mean > 3 ? "#22c55e" : sentinelStats.lai.mean > 1.5 ? "#eab308" : "#ef4444" }}>
+                    {sentinelStats.lai.mean > 3 ? "Dense" : sentinelStats.lai.mean > 1.5 ? "Growing" : "Sparse"}
                   </span>
                 </div>
                 <p className="veg-description">Leaf Area Index</p>
@@ -1090,369 +1160,136 @@ const FarmDetailsPage = () => {
                 </div>
               </div>
             ) : sentinelLoading ? (
-              <p>Loading LAI...</p>
+              <p style={{ color: "#94a3b8", fontSize: "0.875rem" }}>Loading LAI…</p>
             ) : (
-              <p style={{ color: "#64748b", fontSize: "0.875rem" }}>
-                LAI data unavailable.
-              </p>
+              <p className="data-unavailable"><span className="material-symbols-outlined">nature</span>LAI data unavailable</p>
             )}
           </div>
 
-          {/* UV Index Card */}
-          <div className="data-card uvi-card">
-            <h3>UV Index</h3>
-            {uvi ? (
-              <div className="uvi-content">
-                <div className="metric-item">
-                  <span
-                    className="material-symbols-outlined metric-icon"
-                    style={{ backgroundColor: "#fef3c7", color: "#f59e0b" }}
-                  >
-                    wb_sunny
-                  </span>
-                  <div>
-                    <p className="metric-label">Current UV Index</p>
-                    <p className="metric-value">
-                      {uvi.uvi?.toFixed(1) || "N/A"}
-                    </p>
-                    <p
-                      className="uvi-level"
-                      style={{ fontSize: "0.75rem", color: "#64748b" }}
-                    >
-                      {uvi.uvi <= 2
-                        ? "Low"
-                        : uvi.uvi <= 5
-                          ? "Moderate"
-                          : uvi.uvi <= 7
-                            ? "High"
-                            : uvi.uvi <= 10
-                              ? "Very High"
-                              : "Extreme"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <p style={{ color: "#64748b", fontSize: "0.875rem" }}>
-                UV Index data unavailable.
-              </p>
-            )}
-          </div>
-
-          {/* Current Weather Details Card */}
-          <div className="data-card current-weather-card">
-            <h3>Current Conditions</h3>
-            {currentWeather ? (
-              <div className="current-weather-content">
-                <div className="weather-grid">
-                  <div className="weather-stat">
-                    <span className="material-symbols-outlined">air</span>
-                    <div>
-                      <p className="stat-label">Wind Speed</p>
-                      <p className="stat-value">
-                        {currentWeather.wind?.speed?.toFixed(1) || 0} m/s
-                      </p>
-                    </div>
-                  </div>
-                  <div className="weather-stat">
-                    <span className="material-symbols-outlined">
-                      humidity_percentage
-                    </span>
-                    <div>
-                      <p className="stat-label">Humidity</p>
-                      <p className="stat-value">
-                        {currentWeather.main?.humidity || 0}%
-                      </p>
-                    </div>
-                  </div>
-                  <div className="weather-stat">
-                    <span className="material-symbols-outlined">compress</span>
-                    <div>
-                      <p className="stat-label">Pressure</p>
-                      <p className="stat-value">
-                        {currentWeather.main?.pressure || 0} hPa
-                      </p>
-                    </div>
-                  </div>
-                  <div className="weather-stat">
-                    <span className="material-symbols-outlined">
-                      visibility
-                    </span>
-                    <div>
-                      <p className="stat-label">Clouds</p>
-                      <p className="stat-value">
-                        {currentWeather.clouds?.all || 0}%
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <p style={{ color: "#64748b", fontSize: "0.875rem" }}>
-                Current weather data unavailable.
-              </p>
-            )}
-          </div>
-
-          {/* SAVI Card (from Sentinel) */}
-          <div className="data-card savi-card">
-            <h3>SAVI</h3>
-            {sentinelStats?.savi && isValidNumber(sentinelStats.savi.mean) ? (
-              <div className="vegetation-stat-content">
-                <div className="vegetation-main-value">
-                  <span className="veg-value">
-                    {safeToFixed(sentinelStats.savi.mean, 3)}
-                  </span>
-                  <span
-                    className="veg-badge"
-                    style={{
-                      backgroundColor:
-                        sentinelStats.savi.mean > 0.4
-                          ? "#22c55e"
-                          : sentinelStats.savi.mean > 0.2
-                            ? "#eab308"
-                            : "#ef4444",
-                    }}
-                  >
-                    {sentinelStats.savi.mean > 0.4
-                      ? "Good"
-                      : sentinelStats.savi.mean > 0.2
-                        ? "Fair"
-                        : "Poor"}
-                  </span>
-                </div>
-                <p className="veg-description">Soil-Adjusted Vegetation</p>
-                <div className="veg-range">
-                  <span>Min: {safeToFixed(sentinelStats.savi.min, 2)}</span>
-                  <span>Max: {safeToFixed(sentinelStats.savi.max, 2)}</span>
-                </div>
-              </div>
-            ) : sentinelLoading ? (
-              <p>Loading SAVI...</p>
-            ) : (
-              <p style={{ color: "#64748b", fontSize: "0.875rem" }}>
-                SAVI data unavailable.
-              </p>
-            )}
-          </div>
-
-          {/* Moisture Card (from Sentinel) */}
+          {/* Moisture */}
           <div className="data-card moisture-card">
-            <h3>Plant Moisture</h3>
-            {sentinelStats?.moisture &&
-              isValidNumber(sentinelStats.moisture.mean) ? (
+            <h3>Plant Moisture — NDMI</h3>
+            {sentinelStats?.moisture && isValidNumber(sentinelStats.moisture.mean) ? (
               <div className="vegetation-stat-content">
                 <div className="vegetation-main-value">
-                  <span className="veg-value">
-                    {safeToFixed(sentinelStats.moisture.mean, 3)}
-                  </span>
-                  <span
-                    className="veg-badge"
-                    style={{
-                      backgroundColor:
-                        sentinelStats.moisture.mean > 0.1
-                          ? "#3b82f6"
-                          : sentinelStats.moisture.mean > -0.1
-                            ? "#eab308"
-                            : "#ef4444",
-                    }}
-                  >
-                    {sentinelStats.moisture.mean > 0.1
-                      ? "Adequate"
-                      : sentinelStats.moisture.mean > -0.1
-                        ? "Normal"
-                        : "Dry"}
+                  <span className="veg-value">{safeToFixed(sentinelStats.moisture.mean, 3)}</span>
+                  <span className="veg-badge" style={{ backgroundColor: sentinelStats.moisture.mean > 0.1 ? "#3b82f6" : sentinelStats.moisture.mean > -0.1 ? "#eab308" : "#ef4444" }}>
+                    {sentinelStats.moisture.mean > 0.1 ? "Adequate" : sentinelStats.moisture.mean > -0.1 ? "Normal" : "Dry"}
                   </span>
                 </div>
-                <p className="veg-description">NDMI Water Stress Index</p>
+                <p className="veg-description">Normalized Difference Moisture Index</p>
                 <div className="veg-range">
                   <span>Min: {safeToFixed(sentinelStats.moisture.min, 2)}</span>
                   <span>Max: {safeToFixed(sentinelStats.moisture.max, 2)}</span>
                 </div>
               </div>
             ) : sentinelLoading ? (
-              <p>Loading moisture...</p>
+              <p style={{ color: "#94a3b8", fontSize: "0.875rem" }}>Loading moisture…</p>
             ) : (
-              <p style={{ color: "#64748b", fontSize: "0.875rem" }}>
-                Moisture data unavailable.
-              </p>
+              <p className="data-unavailable"><span className="material-symbols-outlined">water_drop</span>Moisture data unavailable</p>
             )}
           </div>
+        </div>
 
-          {/* Drone Imagery Card - TiTiler Integration */}
-          <DroneImagerySection farmId={farmId} />
-
-          {/* IoT Sensors Section */}
+        {/* ── IoT Sensors ── */}
+        <p className="section-heading">
+          <span className="material-symbols-outlined">sensors</span>
+          IoT Sensors
+        </p>
+        <div className="data-grid" style={{ marginBottom: "2rem" }}>
           <IoTSensorSection farmId={farmId} />
+        </div>
 
-          {/* NDVI Chart (AgroMonitoring) */}
+        {/* ── Historical Trends ── */}
+        <p className="section-heading">
+          <span className="material-symbols-outlined">show_chart</span>
+          Historical Trends
+        </p>
+        <div className="data-grid grid-2col" style={{ marginBottom: "2rem" }}>
+
           <div className="data-card chart-card">
-            <h3>NDVI Trend (Last 30 Days)</h3>
-            <p className="card-subtitle">
-              Higher values indicate healthier vegetation
-            </p>
+            <h3>NDVI Trend — Last 30 Days</h3>
+            <p className="card-subtitle">Source: AgroMonitoring · Higher values indicate healthier vegetation</p>
             {ndviHistory.length > 0 ? (
-              <div className="chart-container">
-                <NdviChart data={ndviHistory} />
-              </div>
-            ) : loading ? (
-              <p>Loading NDVI data...</p>
+              <div className="chart-container"><NdviChart data={ndviHistory} /></div>
             ) : (
-              <p style={{ color: "#64748b", fontSize: "0.875rem" }}>
-                No NDVI data available. Check console for details.
-              </p>
+              <p className="data-unavailable"><span className="material-symbols-outlined">show_chart</span>No NDVI data available</p>
             )}
           </div>
 
-          {/* Sentinel Hub NDVI Trend Chart */}
+          {/* Sentinel NDVI History */}
           <div className="data-card chart-card sentinel-chart-card">
             <h3>
-              <span
-                className="material-symbols-outlined"
-                style={{
-                  color: "#22c55e",
-                  marginRight: "8px",
-                  fontSize: "1.2rem",
-                  verticalAlign: "middle",
-                }}
-              >
-                show_chart
-              </span>
-              NDVI History (Sentinel Hub)
+              <span className="material-symbols-outlined" style={{ color: "#22c55e", marginRight: "6px", fontSize: "1.1rem", verticalAlign: "middle" }}>show_chart</span>
+              NDVI History — Sentinel Hub
             </h3>
             <p className="card-subtitle">60-day vegetation health trend</p>
             {sentinelHistory.ndvi.length > 0 ? (
-              <div className="chart-container">
-                <VegetationChart
-                  data={sentinelHistory.ndvi}
-                  label="NDVI"
-                  color="#22c55e"
-                  minValue={-0.2}
-                  maxValue={1}
-                />
-              </div>
-            ) : sentinelLoading ? (
-              <p>Loading Sentinel NDVI history...</p>
+              <div className="chart-container"><VegetationChart data={sentinelHistory.ndvi} label="NDVI" color="#22c55e" minValue={-0.2} maxValue={1} /></div>
             ) : (
-              <p style={{ color: "#64748b", fontSize: "0.875rem" }}>
-                No NDVI history available.
-              </p>
+              <p className="data-unavailable"><span className="material-symbols-outlined">show_chart</span>No NDVI history available</p>
             )}
           </div>
 
-          {/* Sentinel Hub SAVI Trend Chart */}
+          {/* Sentinel SAVI History */}
           <div className="data-card chart-card sentinel-chart-card">
             <h3>
-              <span
-                className="material-symbols-outlined"
-                style={{
-                  color: "#10b981",
-                  marginRight: "8px",
-                  fontSize: "1.2rem",
-                  verticalAlign: "middle",
-                }}
-              >
-                grass
-              </span>
-              SAVI History (Sentinel Hub)
+              <span className="material-symbols-outlined" style={{ color: "#10b981", marginRight: "6px", fontSize: "1.1rem", verticalAlign: "middle" }}>grass</span>
+              SAVI History — Sentinel Hub
             </h3>
-            <p className="card-subtitle">
-              60-day soil-adjusted vegetation trend
-            </p>
+            <p className="card-subtitle">60-day soil-adjusted vegetation trend</p>
             {sentinelHistory.savi.length > 0 ? (
-              <div className="chart-container">
-                <VegetationChart
-                  data={sentinelHistory.savi}
-                  label="SAVI"
-                  color="#10b981"
-                  minValue={-0.2}
-                  maxValue={1.5}
-                />
-              </div>
-            ) : sentinelLoading ? (
-              <p>Loading SAVI history...</p>
+              <div className="chart-container"><VegetationChart data={sentinelHistory.savi} label="SAVI" color="#10b981" minValue={-0.2} maxValue={1.5} /></div>
             ) : (
-              <p style={{ color: "#64748b", fontSize: "0.875rem" }}>
-                No SAVI history available.
-              </p>
+              <p className="data-unavailable"><span className="material-symbols-outlined">grass</span>No SAVI history available</p>
             )}
           </div>
 
-          {/* Sentinel Hub Moisture Trend Chart */}
+          {/* Sentinel Moisture History */}
           <div className="data-card chart-card sentinel-chart-card">
             <h3>
-              <span
-                className="material-symbols-outlined"
-                style={{
-                  color: "#0ea5e9",
-                  marginRight: "8px",
-                  fontSize: "1.2rem",
-                  verticalAlign: "middle",
-                }}
-              >
-                water_drop
-              </span>
-              Moisture History (Sentinel Hub)
+              <span className="material-symbols-outlined" style={{ color: "#0ea5e9", marginRight: "6px", fontSize: "1.1rem", verticalAlign: "middle" }}>water_drop</span>
+              Moisture History — Sentinel Hub
             </h3>
             <p className="card-subtitle">60-day vegetation moisture trend</p>
             {sentinelHistory.moisture.length > 0 ? (
-              <div className="chart-container">
-                <VegetationChart
-                  data={sentinelHistory.moisture}
-                  label="Moisture"
-                  color="#0ea5e9"
-                  minValue={-0.5}
-                  maxValue={0.5}
-                />
-              </div>
-            ) : sentinelLoading ? (
-              <p>Loading moisture history...</p>
+              <div className="chart-container"><VegetationChart data={sentinelHistory.moisture} label="Moisture" color="#0ea5e9" minValue={-0.5} maxValue={0.5} /></div>
             ) : (
-              <p style={{ color: "#64748b", fontSize: "0.875rem" }}>
-                No moisture history available.
-              </p>
+              <p className="data-unavailable"><span className="material-symbols-outlined">water_drop</span>No moisture history available</p>
             )}
           </div>
 
-          {/* Sentinel Hub LAI Trend Chart */}
+          {/* Sentinel LAI History */}
           <div className="data-card chart-card sentinel-chart-card">
             <h3>
-              <span
-                className="material-symbols-outlined"
-                style={{
-                  color: "#84cc16",
-                  marginRight: "8px",
-                  fontSize: "1.2rem",
-                  verticalAlign: "middle",
-                }}
-              >
-                eco
-              </span>
-              LAI History (Sentinel Hub)
+              <span className="material-symbols-outlined" style={{ color: "#84cc16", marginRight: "6px", fontSize: "1.1rem", verticalAlign: "middle" }}>eco</span>
+              LAI History — Sentinel Hub
             </h3>
             <p className="card-subtitle">60-day leaf area index trend</p>
             {sentinelHistory.lai.length > 0 ? (
-              <div className="chart-container">
-                <VegetationChart
-                  data={sentinelHistory.lai}
-                  label="LAI"
-                  color="#84cc16"
-                  minValue={0}
-                  maxValue={8}
-                />
-              </div>
-            ) : sentinelLoading ? (
-              <p>Loading LAI history...</p>
+              <div className="chart-container"><VegetationChart data={sentinelHistory.lai} label="LAI" color="#84cc16" minValue={0} maxValue={8} /></div>
             ) : (
-              <p style={{ color: "#64748b", fontSize: "0.875rem" }}>
-                No LAI history available.
-              </p>
+              <p className="data-unavailable"><span className="material-symbols-outlined">eco</span>No LAI history available</p>
             )}
           </div>
+        </div>
 
-          {/* Sentinel Hub Satellite Imagery - Interactive Map */}
+        {/* ── Imagery ── */}
+        <p className="section-heading">
+          <span className="material-symbols-outlined">satellite_alt</span>
+          Imagery
+        </p>
+        <div className="data-grid" style={{ marginBottom: "2rem" }}>
+          <DroneImagerySection farmId={farmId} />
           <SatelliteImagerySection farmId={farmId} coords={farmCoords} />
+        </div>
 
+        {/* ── AI Tools ── */}
+        <p className="section-heading">
+          <span className="material-symbols-outlined">smart_toy</span>
+          AI Tools
+        </p>
+        <div className="data-grid">
           {/* ===== Plant Counter AI Section ===== */}
           <div className="data-card pc-card">
             <div className="pc-header">
@@ -1474,13 +1311,7 @@ const FarmDetailsPage = () => {
                 onDrop={(e) => { e.preventDefault(); setPcDragOver(false); const f = e.dataTransfer.files[0]; if (f) handlePcFile(f); }}
                 onClick={() => document.getElementById("pc-file-input").click()}
               >
-                <input
-                  id="pc-file-input"
-                  type="file"
-                  accept="image/*"
-                  style={{ display: "none" }}
-                  onChange={(e) => { if (e.target.files[0]) handlePcFile(e.target.files[0]); }}
-                />
+                <input id="pc-file-input" type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => { if (e.target.files[0]) handlePcFile(e.target.files[0]); }} />
                 <span className="pc-upload-icon material-symbols-outlined">
                   {pcFile ? "check_circle" : "cloud_upload"}
                 </span>
@@ -1488,9 +1319,7 @@ const FarmDetailsPage = () => {
                   {pcFile ? pcFile.name : "Drag & drop an image, or click to browse"}
                 </p>
                 <p className="pc-upload-sub">
-                  {pcFile
-                    ? `${(pcFile.size / 1024 / 1024).toFixed(2)} MB — ready for analysis`
-                    : "Supports JPG, PNG, TIFF · Max 500 MB"}
+                  {pcFile ? `${(pcFile.size / 1024 / 1024).toFixed(2)} MB — ready for analysis` : "Supports JPG, PNG, TIFF · Max 500 MB"}
                 </p>
                 {pcStatus === "failed" && (
                   <div className="pc-error-banner">
@@ -1526,9 +1355,7 @@ const FarmDetailsPage = () => {
             {/* Results */}
             {pcStatus === "completed" && pcResult && (
               <div className="pc-results">
-                {/* Divider */}
                 <div className="pc-section-label">Analysis Summary</div>
-                {/* Stats row */}
                 <div className="pc-stats-row">
                   <div className="pc-stat-chip pc-stat-green">
                     <span className="material-symbols-outlined">scatter_plot</span>
@@ -1553,51 +1380,33 @@ const FarmDetailsPage = () => {
                   </div>
                 </div>
 
-                {/* Output type tabs */}
                 <div className="pc-section-label" style={{ marginTop: "1.5rem" }}>Output View</div>
                 <div className="pc-tabs">
                   {[
-                    { key: "counting",      icon: "location_on",  label: "Count Overlay" },
-                    { key: "size_annotated",icon: "crop_free",     label: "Size Annotated" },
-                    { key: "size_colored",  icon: "palette",       label: "Color Coded" },
-                    { key: "heatmap",       icon: "areas",         label: "Density Heatmap" },
+                    { key: "counting",       icon: "location_on", label: "Count Overlay" },
+                    { key: "size_annotated", icon: "crop_free",   label: "Size Annotated" },
+                    { key: "size_colored",   icon: "palette",     label: "Color Coded" },
+                    { key: "heatmap",        icon: "areas",       label: "Density Heatmap" },
                   ].map(({ key, icon, label }) => (
-                    <button
-                      key={key}
-                      className={`pc-tab-btn ${pcOutputType === key ? "active" : ""}`}
-                      onClick={() => fetchPcImage(pcJobId, key)}
-                    >
+                    <button key={key} className={`pc-tab-btn ${pcOutputType === key ? "active" : ""}`} onClick={() => fetchPcImage(pcJobId, key)}>
                       <span className="material-symbols-outlined">{icon}</span>
                       {label}
                     </button>
                   ))}
                 </div>
 
-                {/* Original vs Result comparison */}
                 <div className="pc-section-label" style={{ marginTop: "1.5rem" }}>Image Comparison</div>
                 <div className="pc-comparison-row">
                   <div className="pc-comparison-col">
                     <p className="pc-comparison-label">Original Image</p>
-                    {pcOriginalUrl ? (
-                      <img className="pc-result-img" src={pcOriginalUrl} alt="Original uploaded image" />
-                    ) : (
-                      <div className="pc-img-loading"><span>No preview</span></div>
-                    )}
+                    {pcOriginalUrl ? (<img className="pc-result-img" src={pcOriginalUrl} alt="Original uploaded image" />) : (<div className="pc-img-loading"><span>No preview</span></div>)}
                   </div>
                   <div className="pc-comparison-col">
                     <p className="pc-comparison-label">AI Output</p>
-                    {pcImageUrl ? (
-                      <img className="pc-result-img" src={pcImageUrl} alt="Plant counting result" />
-                    ) : (
-                      <div className="pc-img-loading">
-                        <span className="pc-spinner" />
-                        <span>Loading output image...</span>
-                      </div>
-                    )}
+                    {pcImageUrl ? (<img className="pc-result-img" src={pcImageUrl} alt="Plant counting result" />) : (<div className="pc-img-loading"><span className="pc-spinner" /><span>Loading output image...</span></div>)}
                   </div>
                 </div>
 
-                {/* Reset */}
                 <button className="pc-reset-btn" onClick={() => {
                   setPcFile(null); setPcStatus("idle"); setPcResult(null);
                   if (pcImageUrl) { URL.revokeObjectURL(pcImageUrl); setPcImageUrl(null); }
@@ -1610,7 +1419,6 @@ const FarmDetailsPage = () => {
             )}
           </div>
           {/* ===== End Plant Counter AI Section ===== */}
-
         </div>
       </main>
       <Modal
