@@ -9,69 +9,76 @@ import { toast } from "react-hot-toast";
 import { useAuth } from "./useauth";
 import { getMapboxStaticImageUrl } from "./utils/geometryHelpers";
 
-// This is the new, self-contained Farm Card component
+// ── Farm Card ──────────────────────────────────────────────────
 const FarmCard = ({ farm }) => {
   const navigate = useNavigate();
   const mapboxApiKey = import.meta.env.VITE_MAPBOX_API_KEY;
 
-  // Debug logging
-  console.log("Farm data:", farm.name, {
-    boundary_geojson: farm.boundary_geojson,
-    hasMapboxKey: !!mapboxApiKey
-  });
+  // Area — use stored value from database
+  const areaHa = farm.area_hectares?.toFixed(2) || "0.00";
+  const areaAc = (parseFloat(farm.area_hectares || 0) * 2.471).toFixed(1);
 
-  // Get area - use stored value from database
-  const area = farm.area_hectares?.toFixed(2) || '0.00';
-
-  // Get map image URL from boundary GeoJSON
-  let imageUrl = "https://via.placeholder.com/350x150?text=No+Boundary+Data";
-  
-  if (farm.boundary_geojson) {
-    // boundary_geojson from ST_AsGeoJSON is a geometry object, not a full GeoJSON
-    // It might be a string that needs parsing, or already an object
-    let boundaryGeometry = farm.boundary_geojson;
-    if (typeof boundaryGeometry === 'string') {
-      try {
-        boundaryGeometry = JSON.parse(boundaryGeometry);
-      } catch (e) {
-        console.error("Failed to parse boundary_geojson:", e);
-      }
+  // Map image from boundary GeoJSON
+  let imageUrl = null;
+  if (farm.boundary_geojson && mapboxApiKey) {
+    let geom = farm.boundary_geojson;
+    if (typeof geom === "string") {
+      try { geom = JSON.parse(geom); } catch (e) { /* ignore */ }
     }
-    
-    if (boundaryGeometry && mapboxApiKey) {
-      imageUrl = getMapboxStaticImageUrl(boundaryGeometry, mapboxApiKey);
-    } else if (!mapboxApiKey) {
-      imageUrl = "https://via.placeholder.com/350x150?text=Mapbox+Key+Missing";
-    }
+    if (geom) imageUrl = getMapboxStaticImageUrl(geom, mapboxApiKey);
   }
 
-  const milestonesComplete = 0; // Placeholder data
-  const totalMilestones = 5; // Placeholder data
+  // Milestone progress (placeholder)
+  const milestonesComplete = 0;
+  const totalMilestones = 5;
   const progress = (milestonesComplete / totalMilestones) * 100;
 
   return (
     <div className="farm-card">
-      <img src={imageUrl} alt={`Map of ${farm.name}`} className="card-image" />
+      <img
+        src={imageUrl || "https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=600"}
+        alt={`Map of ${farm.name}`}
+        className="card-image"
+      />
       <div className="card-content">
-        <div className="card-header">
-          <h3>{farm.name}</h3>
+        {/* Name + View button */}
+        <div className="card-name-row">
+          <h3>{farm.name.toUpperCase()}</h3>
           <button
-            onClick={() => navigate(`/farm/${farm.id}`)}
             className="view-details-btn"
+            onClick={() => navigate(`/farm/${farm.id}`)}
           >
-            View Details
+            <span className="material-symbols-outlined">arrow_forward</span>
+            View
           </button>
         </div>
-        <div className="card-details">
-          <p>Total Area: {area} Hectares</p>
-          <p>
-            {milestonesComplete} of {totalMilestones} milestones complete
-          </p>
+
+        {/* Meta chips */}
+        <div className="card-meta">
+          <span className="card-meta-chip green">
+            <span className="material-symbols-outlined">landscape</span>
+            {areaHa} ha
+          </span>
+          <span className="card-meta-chip">
+            <span className="material-symbols-outlined">straighten</span>
+            {areaAc} acres
+          </span>
+          <span className="card-meta-chip">
+            <span className="material-symbols-outlined">location_on</span>
+            Field
+          </span>
+        </div>
+
+        {/* Milestone progress */}
+        <div className="card-progress">
+          <div className="card-progress-header">
+            <span className="card-progress-label">Milestone Progress</span>
+            <span className="card-progress-pct">
+              {milestonesComplete}/{totalMilestones}
+            </span>
+          </div>
           <div className="progress-bar-container">
-            <div
-              className="progress-bar"
-              style={{ width: `${progress}%` }}
-            ></div>
+            <div className="progress-bar" style={{ width: `${progress}%` }} />
           </div>
         </div>
       </div>
@@ -79,42 +86,32 @@ const FarmCard = ({ farm }) => {
   );
 };
 
+// ── Farms Page ─────────────────────────────────────────────────
 const FarmsPage = () => {
   const [farms, setFarms] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
   const navigate = useNavigate();
   const { role } = useAuth();
 
   useEffect(() => {
     const fetchFarms = async () => {
       try {
-        // Attempt to use RPC to get farms with boundary as GeoJSON
-        // This handles the PostGIS geometry conversion server-side
-        const { data, error } = await supabase.rpc('get_user_farms_geojson');
-        
+        const { data, error } = await supabase.rpc("get_user_farms_geojson");
         if (error) {
-          // Fallback: If RPC doesn't exist yet, use basic query
-          // Note: This won't include boundary GeoJSON for map images
-          console.warn("RPC not available, using fallback query:", error.message);
+          console.warn("RPC not available, using fallback:", error.message);
           const { data: fallbackData, error: fallbackError } = await supabase
             .from("farms")
             .select("id, name, area_hectares");
-          
           if (fallbackError) {
-            console.error("Error fetching farms:", fallbackError);
             toast.error("Failed to load farms");
           } else {
-            // Map to expected format (without boundary_geojson)
-            setFarms(fallbackData?.map(f => ({
-              ...f,
-              boundary_geojson: null
-            })) || []);
+            setFarms(fallbackData?.map((f) => ({ ...f, boundary_geojson: null })) || []);
           }
         } else {
           setFarms(data || []);
         }
       } catch (err) {
-        console.error("Error fetching farms:", err);
         toast.error("Failed to load farms");
       } finally {
         setLoading(false);
@@ -123,43 +120,83 @@ const FarmsPage = () => {
     fetchFarms();
   }, []);
 
-  if (loading) return <Spinner></Spinner>;
+  if (loading) return <Spinner />;
+
+  const filtered = farms.filter((f) =>
+    f.name.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div className="farms-page-container">
       <Sidebar />
       <main className="farms-main">
-        <header className="farms-page-header">
-          <div>
-            <h1>My Farms</h1>
-            <p className="page-subtitle">
-              An overview of all your registered farms.
-            </p>
-          </div>
-          <div className="search-bar">
-            <span className="material-symbols-outlined">search</span>
-            <input type="text" placeholder="Search by farm name..." />
-          </div>
-        </header>
 
+        {/* ── Hero Header ── */}
+        <div className="farms-hero">
+          <div className="farms-hero-accent" />
+          <div className="farms-hero-body">
+            <div className="farms-hero-left">
+              <div className="farms-hero-icon">
+                <span className="material-symbols-outlined">agriculture</span>
+              </div>
+              <div>
+                <p className="farms-hero-eyebrow">Farm Management</p>
+                <h1 className="farms-hero-title">My Farms</h1>
+                <p className="farms-hero-subtitle">
+                  {farms.length} farm{farms.length !== 1 ? "s" : ""} registered · Click a card to view live data
+                </p>
+              </div>
+            </div>
+            <div className="farms-search">
+              <span className="material-symbols-outlined">search</span>
+              <input
+                type="text"
+                placeholder="Search farms…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* ── Farm Cards Grid ── */}
         <div className="farms-grid">
-          {farms.map((farm) => (
+          {filtered.map((farm) => (
             <FarmCard key={farm.id} farm={farm} />
           ))}
-          {/* "Add New Farm" card - Only visible to farmers */}
+
+          {/* ── Add Farm card (farmers only) ── */}
           {role === "farmer" && (
-            <div
-              className="add-farm-card"
-              onClick={() => navigate("/create-farm")}
-            >
+            <div className="add-farm-card" onClick={() => navigate("/create-farm")}>
               <div className="add-icon-circle">
                 <span className="material-symbols-outlined">add</span>
               </div>
-              <h3>Have another property?</h3>
-              <button className="add-farm-cta">Add a New Farm</button>
+              <h3>Add Another Farm</h3>
+              <p>Register a new property to start tracking its crops, data &amp; milestones.</p>
+              <span className="add-farm-cta">
+                <span className="material-symbols-outlined" style={{ fontSize: "1rem" }}>add_circle</span>
+                Add New Farm
+              </span>
+            </div>
+          )}
+
+          {/* ── Empty state ── */}
+          {filtered.length === 0 && farms.length > 0 && (
+            <div className="farms-empty" style={{ gridColumn: "1/-1" }}>
+              <span className="material-symbols-outlined">search_off</span>
+              <h3>No farms match "{search}"</h3>
+              <p>Try a different search term.</p>
+            </div>
+          )}
+          {farms.length === 0 && (
+            <div className="farms-empty" style={{ gridColumn: "1/-1" }}>
+              <span className="material-symbols-outlined">agriculture</span>
+              <h3>No farms yet</h3>
+              <p>Add your first farm to get started.</p>
             </div>
           )}
         </div>
+
       </main>
     </div>
   );
