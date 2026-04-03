@@ -70,6 +70,32 @@ const uploadWithProgress = (url, formData, onProgress) => {
 };
 
 /**
+ * Retry a function with exponential backoff.
+ * @param {function} fn - Async function to retry
+ * @param {number} maxRetries - Maximum number of retry attempts
+ * @param {number} baseDelayMs - Initial delay in milliseconds (doubles each retry)
+ * @returns {Promise<any>} Result of the function
+ */
+const retryWithBackoff = async (fn, maxRetries = 3, baseDelayMs = 1000) => {
+  let lastError;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      if (attempt < maxRetries) {
+        const delay = baseDelayMs * Math.pow(2, attempt);
+        console.warn(
+          `Upload retry ${attempt + 1}/${maxRetries} after ${delay}ms: ${error.message}`
+        );
+        await new Promise((r) => setTimeout(r, delay));
+      }
+    }
+  }
+  throw lastError;
+};
+
+/**
  * Upload a large file using the chunked upload protocol.
  * Splits the file into chunks, sends them sequentially, then finalizes.
  */
@@ -85,25 +111,27 @@ const uploadDroneImageryChunked = async ({
   onProgress = null,
 }) => {
   // Step 1: Initialize the upload session
-  const initResp = await fetch(`${COMPUTE_API}/api/v1/imagery/upload/init`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      filename: file.name,
-      total_size: file.size,
-      farm_id: farmId,
-      flight_date: flightDate,
-      layer_type: layerType,
-      content_type: file.type || "image/tiff",
-    }),
+  const { upload_id, chunk_size } = await retryWithBackoff(async () => {
+    const initResp = await fetch(`${COMPUTE_API}/api/v1/imagery/upload/init`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        filename: file.name,
+        total_size: file.size,
+        farm_id: farmId,
+        flight_date: flightDate,
+        layer_type: layerType,
+        content_type: file.type || "image/tiff",
+      }),
+    });
+
+    if (!initResp.ok) {
+      const err = await initResp.json().catch(() => ({}));
+      throw new Error(err.detail || `Upload init failed (${initResp.status})`);
+    }
+
+    return await initResp.json();
   });
-
-  if (!initResp.ok) {
-    const err = await initResp.json().catch(() => ({}));
-    throw new Error(err.detail || `Upload init failed (${initResp.status})`);
-  }
-
-  const { upload_id, chunk_size } = await initResp.json();
   const totalSize = file.size;
   let offset = 0;
 
@@ -113,24 +141,26 @@ const uploadDroneImageryChunked = async ({
     const chunk = file.slice(offset, end);
     const chunkBytes = await chunk.arrayBuffer();
 
-    const chunkResp = await fetch(
-      `${COMPUTE_API}/api/v1/imagery/upload/${upload_id}`,
-      {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/octet-stream",
-          "Content-Range": `bytes ${offset}-${end - 1}/${totalSize}`,
+    await retryWithBackoff(async () => {
+      const chunkResp = await fetch(
+        `${COMPUTE_API}/api/v1/imagery/upload/${upload_id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/octet-stream",
+            "Content-Range": `bytes ${offset}-${end - 1}/${totalSize}`,
+          },
+          body: chunkBytes,
         },
-        body: chunkBytes,
-      },
-    );
-
-    if (!chunkResp.ok) {
-      const err = await chunkResp.json().catch(() => ({}));
-      throw new Error(
-        err.detail || `Chunk upload failed at offset ${offset} (${chunkResp.status})`,
       );
-    }
+
+      if (!chunkResp.ok) {
+        const err = await chunkResp.json().catch(() => ({}));
+        throw new Error(
+          err.detail || `Chunk upload failed at offset ${offset} (${chunkResp.status})`,
+        );
+      }
+    }, 3, 2000);
 
     offset = end;
 
@@ -150,21 +180,23 @@ const uploadDroneImageryChunked = async ({
   if (droneModel) completeBody.drone_model = droneModel;
   if (altitude != null) completeBody.altitude = altitude;
 
-  const completeResp = await fetch(
-    `${COMPUTE_API}/api/v1/imagery/upload/${upload_id}/complete`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(completeBody),
-    },
-  );
+  return await retryWithBackoff(async () => {
+    const completeResp = await fetch(
+      `${COMPUTE_API}/api/v1/imagery/upload/${upload_id}/complete`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(completeBody),
+      },
+    );
 
-  if (!completeResp.ok) {
-    const err = await completeResp.json().catch(() => ({}));
-    throw new Error(err.detail || `Upload finalization failed (${completeResp.status})`);
-  }
+    if (!completeResp.ok) {
+      const err = await completeResp.json().catch(() => ({}));
+      throw new Error(err.detail || `Upload finalization failed (${completeResp.status})`);
+    }
 
-  return await completeResp.json();
+    return await completeResp.json();
+  }, 3, 2000);
 };
 
 /**

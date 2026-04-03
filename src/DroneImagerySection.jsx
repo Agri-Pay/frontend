@@ -790,7 +790,7 @@ const DroneImagerySection = ({ farmId, farmName = "Farm" }) => {
     setImageError(false);
     setImageLoading(true);
 
-    // Fetch bounds
+    // Fetch bounds — try TiTiler first, fall back to DB-stored bounds
     const loadBounds = async () => {
       try {
         const bounds = await getBounds(filename);
@@ -800,8 +800,21 @@ const DroneImagerySection = ({ farmId, farmName = "Farm" }) => {
           [bounds[3], bounds[2]], // [maxLat, maxLon]
         ]);
       } catch (error) {
-        console.error("Error loading bounds:", error);
-        setImageError(true);
+        console.warn("TiTiler bounds failed, trying DB fallback:", error.message);
+        // Fallback: use bounds stored in DB during upload registration
+        const layerData = selectedFlight.layersData?.find(
+          (l) => l.filename === filename
+        );
+        const dbBounds = layerData?.bounds;
+        if (dbBounds && Array.isArray(dbBounds) && dbBounds.length === 4) {
+          setMapBounds([
+            [dbBounds[1], dbBounds[0]],
+            [dbBounds[3], dbBounds[2]],
+          ]);
+        } else {
+          console.error("No bounds available from TiTiler or DB");
+          setImageError(true);
+        }
       } finally {
         setImageLoading(false);
       }
@@ -813,7 +826,7 @@ const DroneImagerySection = ({ farmId, farmName = "Farm" }) => {
         const statistics = await getStatistics(filename);
         setLayerStats(statistics);
       } catch (error) {
-        console.error("Error loading statistics:", error);
+        console.warn("Statistics not available:", error.message);
       }
     };
 
