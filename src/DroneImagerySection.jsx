@@ -22,6 +22,8 @@ import {
   isTiTilerConfigured,
   computeVegetationIndices,
   getNdviHealthStatus,
+  MICASENSE_BANDS,
+  MICASENSE_5BAND,
 } from "./titiler";
 import {
   uploadDroneImagery,
@@ -112,6 +114,8 @@ const DroneImagerySection = ({ farmId, farmName = "Farm" }) => {
     layerType: "ndvi",
     pilotName: "",
     droneModel: "",
+    bandMapping: null,
+    bandPreset: "",
   });
 
   // Raw image processing state
@@ -433,6 +437,7 @@ const DroneImagerySection = ({ farmId, farmName = "Farm" }) => {
         farmId,
         flightDate: uploadForm.flightDate,
         layerType: uploadForm.layerType,
+        bandMapping: uploadForm.bandMapping || null,
         pilotName: uploadForm.pilotName || null,
         droneModel: uploadForm.droneModel || null,
         onProgress: ({ percent }) => setUploadProgress(percent),
@@ -449,6 +454,8 @@ const DroneImagerySection = ({ farmId, farmName = "Farm" }) => {
           layerType: "ndvi",
           pilotName: "",
           droneModel: "",
+          bandMapping: null,
+          bandPreset: "",
         });
         // Refresh the flights list
         await fetchDroneFlights();
@@ -1815,12 +1822,15 @@ const DroneImagerySection = ({ farmId, farmName = "Farm" }) => {
                       <label>Layer Type *</label>
                       <select
                         value={uploadForm.layerType}
-                        onChange={(e) =>
+                        onChange={(e) => {
+                          const newType = e.target.value;
                           setUploadForm({
                             ...uploadForm,
-                            layerType: e.target.value,
-                          })
-                        }
+                            layerType: newType,
+                            bandMapping: null,
+                            bandPreset: "",
+                          });
+                        }}
                       >
                         <option value="rgb">True Color (RGB)</option>
                         <option value="ndvi">NDVI</option>
@@ -1829,8 +1839,164 @@ const DroneImagerySection = ({ farmId, farmName = "Farm" }) => {
                         <option value="thermal">Thermal</option>
                         <option value="lai">LAI</option>
                         <option value="gndvi">GNDVI</option>
+                        <option value="multispectral">Multispectral (Multi-band)</option>
                       </select>
                     </div>
+
+                    {/* Band mapping UI for multispectral uploads */}
+                    {uploadForm.layerType === "multispectral" && (
+                      <div className="form-group">
+                        <label>Band Preset</label>
+                        <select
+                          value={uploadForm.bandPreset}
+                          onChange={(e) => {
+                            const preset = e.target.value;
+                            let mapping = null;
+                            if (preset === "micasense_10") {
+                              mapping = Object.entries(MICASENSE_BANDS).map(
+                                ([num, b]) => ({
+                                  band_number: parseInt(num),
+                                  band_name: b.name,
+                                  wavelength: b.wavelength,
+                                })
+                              );
+                            } else if (preset === "micasense_5") {
+                              mapping = Object.entries(MICASENSE_5BAND).map(
+                                ([num, b]) => ({
+                                  band_number: parseInt(num),
+                                  band_name: b.name,
+                                  wavelength: b.wavelength,
+                                })
+                              );
+                            } else if (preset === "custom") {
+                              mapping = [
+                                { band_number: 1, band_name: "", wavelength: "" },
+                                { band_number: 2, band_name: "", wavelength: "" },
+                                { band_number: 3, band_name: "", wavelength: "" },
+                              ];
+                            }
+                            setUploadForm({
+                              ...uploadForm,
+                              bandPreset: preset,
+                              bandMapping: mapping,
+                            });
+                          }}
+                        >
+                          <option value="">Auto-detect from file</option>
+                          <option value="micasense_10">
+                            MicaSense RedEdge-MX Dual (10 bands)
+                          </option>
+                          <option value="micasense_5">
+                            MicaSense RedEdge (5 bands)
+                          </option>
+                          <option value="custom">Custom band mapping</option>
+                        </select>
+
+                        {uploadForm.bandMapping && (
+                          <div className="band-mapping-table" style={{ marginTop: "10px" }}>
+                            <table style={{ width: "100%", fontSize: "0.85rem", borderCollapse: "collapse" }}>
+                              <thead>
+                                <tr>
+                                  <th style={{ textAlign: "left", padding: "4px 8px", borderBottom: "1px solid #ddd" }}>#</th>
+                                  <th style={{ textAlign: "left", padding: "4px 8px", borderBottom: "1px solid #ddd" }}>Band Name</th>
+                                  <th style={{ textAlign: "left", padding: "4px 8px", borderBottom: "1px solid #ddd" }}>Wavelength</th>
+                                  {uploadForm.bandPreset === "custom" && (
+                                    <th style={{ padding: "4px 8px", borderBottom: "1px solid #ddd" }}></th>
+                                  )}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {uploadForm.bandMapping.map((band, idx) => (
+                                  <tr key={idx}>
+                                    <td style={{ padding: "4px 8px" }}>{band.band_number}</td>
+                                    <td style={{ padding: "4px 8px" }}>
+                                      {uploadForm.bandPreset === "custom" ? (
+                                        <input
+                                          type="text"
+                                          value={band.band_name}
+                                          placeholder="e.g. Blue"
+                                          style={{ width: "100%", padding: "2px 4px" }}
+                                          onChange={(e) => {
+                                            const updated = [...uploadForm.bandMapping];
+                                            updated[idx] = { ...updated[idx], band_name: e.target.value };
+                                            setUploadForm({ ...uploadForm, bandMapping: updated });
+                                          }}
+                                        />
+                                      ) : (
+                                        band.band_name
+                                      )}
+                                    </td>
+                                    <td style={{ padding: "4px 8px" }}>
+                                      {uploadForm.bandPreset === "custom" ? (
+                                        <input
+                                          type="text"
+                                          value={band.wavelength}
+                                          placeholder="e.g. 475nm"
+                                          style={{ width: "100%", padding: "2px 4px" }}
+                                          onChange={(e) => {
+                                            const updated = [...uploadForm.bandMapping];
+                                            updated[idx] = { ...updated[idx], wavelength: e.target.value };
+                                            setUploadForm({ ...uploadForm, bandMapping: updated });
+                                          }}
+                                        />
+                                      ) : (
+                                        band.wavelength
+                                      )}
+                                    </td>
+                                    {uploadForm.bandPreset === "custom" && (
+                                      <td style={{ padding: "4px 8px" }}>
+                                        {uploadForm.bandMapping.length > 1 && (
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              const updated = uploadForm.bandMapping.filter((_, i) => i !== idx);
+                                              setUploadForm({ ...uploadForm, bandMapping: updated });
+                                            }}
+                                            style={{ border: "none", background: "none", cursor: "pointer", color: "#e53e3e", fontSize: "1rem" }}
+                                            title="Remove band"
+                                          >
+                                            &times;
+                                          </button>
+                                        )}
+                                      </td>
+                                    )}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                            {uploadForm.bandPreset === "custom" && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const nextNum = uploadForm.bandMapping.length + 1;
+                                  setUploadForm({
+                                    ...uploadForm,
+                                    bandMapping: [
+                                      ...uploadForm.bandMapping,
+                                      { band_number: nextNum, band_name: "", wavelength: "" },
+                                    ],
+                                  });
+                                }}
+                                style={{ marginTop: "6px", padding: "4px 12px", fontSize: "0.8rem", cursor: "pointer" }}
+                              >
+                                + Add band
+                              </button>
+                            )}
+                            {uploadForm.bandPreset !== "custom" && (
+                              <p style={{ marginTop: "6px", fontSize: "0.8rem", color: "#777" }}>
+                                {uploadForm.bandMapping.length} bands configured
+                              </p>
+                            )}
+                          </div>
+                        )}
+
+                        {!uploadForm.bandMapping && (
+                          <p style={{ marginTop: "6px", fontSize: "0.8rem", color: "#777" }}>
+                            The server will auto-detect band count from the GeoTIFF metadata.
+                          </p>
+                        )}
+                      </div>
+                    )}
 
                     {uploading && (
                       <div className="upload-progress">

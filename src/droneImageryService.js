@@ -14,6 +14,9 @@ const COMPUTE_API =
   import.meta.env.VITE_COMPUTE_API_URL ?? "http://localhost:8001";
 const TITILER_URL = import.meta.env.VITE_TITILER_URL || "http://localhost:8000";
 
+// Files larger than this threshold use chunked upload (50 MB)
+const CHUNKED_UPLOAD_THRESHOLD = 80 * 1024 * 1024;
+
 /**
  * Upload a FormData payload with real progress tracking via XMLHttpRequest.
  * @param {string} url - The endpoint to POST to
@@ -67,7 +70,107 @@ const uploadWithProgress = (url, formData, onProgress) => {
 };
 
 /**
+ * Upload a large file using the chunked upload protocol.
+ * Splits the file into chunks, sends them sequentially, then finalizes.
+ */
+const uploadDroneImageryChunked = async ({
+  file,
+  farmId,
+  flightDate,
+  layerType,
+  bandMapping = null,
+  pilotName = null,
+  droneModel = null,
+  altitude = null,
+  onProgress = null,
+}) => {
+  // Step 1: Initialize the upload session
+  const initResp = await fetch(`${COMPUTE_API}/api/v1/imagery/upload/init`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      filename: file.name,
+      total_size: file.size,
+      farm_id: farmId,
+      flight_date: flightDate,
+      layer_type: layerType,
+      content_type: file.type || "image/tiff",
+    }),
+  });
+
+  if (!initResp.ok) {
+    const err = await initResp.json().catch(() => ({}));
+    throw new Error(err.detail || `Upload init failed (${initResp.status})`);
+  }
+
+  const { upload_id, chunk_size } = await initResp.json();
+  const totalSize = file.size;
+  let offset = 0;
+
+  // Step 2: Send chunks sequentially
+  while (offset < totalSize) {
+    const end = Math.min(offset + chunk_size, totalSize);
+    const chunk = file.slice(offset, end);
+    const chunkBytes = await chunk.arrayBuffer();
+
+    const chunkResp = await fetch(
+      `${COMPUTE_API}/api/v1/imagery/upload/${upload_id}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/octet-stream",
+          "Content-Range": `bytes ${offset}-${end - 1}/${totalSize}`,
+        },
+        body: chunkBytes,
+      },
+    );
+
+    if (!chunkResp.ok) {
+      const err = await chunkResp.json().catch(() => ({}));
+      throw new Error(
+        err.detail || `Chunk upload failed at offset ${offset} (${chunkResp.status})`,
+      );
+    }
+
+    offset = end;
+
+    if (onProgress) {
+      onProgress({
+        loaded: offset,
+        total: totalSize,
+        percent: Math.round((offset / totalSize) * 100),
+      });
+    }
+  }
+
+  // Step 3: Finalize the upload
+  const completeBody = {};
+  if (bandMapping) completeBody.band_mapping = JSON.stringify(bandMapping);
+  if (pilotName) completeBody.pilot_name = pilotName;
+  if (droneModel) completeBody.drone_model = droneModel;
+  if (altitude != null) completeBody.altitude = altitude;
+
+  const completeResp = await fetch(
+    `${COMPUTE_API}/api/v1/imagery/upload/${upload_id}/complete`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(completeBody),
+    },
+  );
+
+  if (!completeResp.ok) {
+    const err = await completeResp.json().catch(() => ({}));
+    throw new Error(err.detail || `Upload finalization failed (${completeResp.status})`);
+  }
+
+  return await completeResp.json();
+};
+
+/**
  * Upload a GeoTIFF file to the compute server and register in database.
+ * Automatically uses chunked upload for files larger than 80 MB.
+ *
  * The server stores the file on disk at /data/{farmId}_{YYYYMMDD}_{layerType}.tif
  * and creates/updates drone_flights + drone_imagery_layers records in Supabase.
  */
@@ -76,16 +179,40 @@ export const uploadDroneImagery = async ({
   farmId,
   flightDate,
   layerType,
+  bandMapping = null,
   pilotName = null,
   droneModel = null,
   altitude = null,
   onProgress = null,
 }) => {
+  // Use chunked upload for large files
+  if (file.size > CHUNKED_UPLOAD_THRESHOLD) {
+    const result = await uploadDroneImageryChunked({
+      file,
+      farmId,
+      flightDate,
+      layerType,
+      bandMapping,
+      pilotName,
+      droneModel,
+      altitude,
+      onProgress,
+    });
+    return {
+      success: result.success,
+      flight: result.flight,
+      layer: result.layer,
+      filename: result.filename,
+    };
+  }
+
+  // Small files: use single-POST upload with XHR progress
   const formData = new FormData();
   formData.append("file", file);
   formData.append("farm_id", farmId);
   formData.append("flight_date", flightDate);
   formData.append("layer_type", layerType);
+  if (bandMapping) formData.append("band_mapping", JSON.stringify(bandMapping));
   if (pilotName) formData.append("pilot_name", pilotName);
   if (droneModel) formData.append("drone_model", droneModel);
   if (altitude != null) formData.append("altitude", altitude.toString());
@@ -201,7 +328,7 @@ export const fetchFromGoogleDrive = async (folderId, farmId) => {
         // Expected format: farmId_YYYYMMDD_layerType.tif or just layerType.tif
         const parsed = parseFilename(file.name);
 
-        // Upload to our storage
+        // Upload to our storage (will automatically use chunked if > 80MB)
         const result = await uploadDroneImagery({
           file: fileObj,
           farmId: farmId,
@@ -284,6 +411,7 @@ const parseFilename = (filename) => {
     "lai",
     "gndvi",
     "savi",
+    "multispectral",
   ];
   for (const part of parts) {
     if (layerTypes.includes(part.toLowerCase())) {
