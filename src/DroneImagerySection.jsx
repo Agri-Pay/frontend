@@ -27,7 +27,8 @@ import {
 } from "./titiler";
 import {
   uploadDroneImagery,
-  fetchFromGoogleDrive,
+  listDriveFiles,
+  importFromDrive,
   ensureStorageBucket,
 } from "./droneImageryService";
 import {
@@ -45,6 +46,7 @@ import {
   getResultImageBlob,
   getCachedResults,
   saveResults,
+  fetchModels,
 } from "./computeService";
 import "./droneimagery.css";
 
@@ -74,7 +76,7 @@ const MapClickHandler = ({ onClick }) => {
   return null;
 };
 
-const DroneImagerySection = ({ farmId, farmName = "Farm" }) => {
+const DroneImagerySection = ({ farmId, farmName = "Farm", cropType = null }) => {
   // Refs
   const fileInputRef = useRef(null);
   const rawFilesInputRef = useRef(null);
@@ -125,10 +127,14 @@ const DroneImagerySection = ({ farmId, farmName = "Farm" }) => {
   const [processingJobs, setProcessingJobs] = useState([]);
   const [webodmToken, setWebodmToken] = useState(null);
 
-  // Drive fetch state
-  const [showDriveModal, setShowDriveModal] = useState(false);
-  const [driveFolderId, setDriveFolderId] = useState("");
-  const [fetchingFromDrive, setFetchingFromDrive] = useState(false);
+  // Drive fetch state (integrated into upload modal)
+  const [fileSource, setFileSource] = useState("local"); // "local" | "drive"
+  const [driveInput, setDriveInput] = useState("");
+  const [driveFiles, setDriveFiles] = useState([]);
+  const [driveSelectedFile, setDriveSelectedFile] = useState(null);
+  const [driveListLoading, setDriveListLoading] = useState(false);
+  const [driveListError, setDriveListError] = useState(null);
+  const [uploadPhase, setUploadPhase] = useState("idle"); // idle|downloading|uploading|registering|processing
 
   // Date picker state
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -148,6 +154,11 @@ const DroneImagerySection = ({ farmId, farmName = "Farm" }) => {
   const [showAnalysisPanel, setShowAnalysisPanel] = useState(false);
   const [cachedResult, setCachedResult] = useState(null);
   const analysisPollRef = useRef(null);
+
+  // Model selection state
+  const [availableModels, setAvailableModels] = useState([]);
+  const [selectedModelId, setSelectedModelId] = useState(null);
+  const [modelsLoading, setModelsLoading] = useState(false);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -287,9 +298,9 @@ const DroneImagerySection = ({ farmId, farmName = "Farm" }) => {
     fetchDroneFlights();
   }, [fetchDroneFlights]);
 
-  // Check cache when selected flight changes
+  // Check cache when selected flight or model changes
   useEffect(() => {
-    if (!selectedFlight?.id) {
+    if (!selectedFlight?.id || !selectedModelId) {
       setCachedResult(null);
       setAnalysisResult(null);
       setAnalysisStatus("idle");
@@ -297,7 +308,7 @@ const DroneImagerySection = ({ farmId, farmName = "Farm" }) => {
     }
     const checkCache = async () => {
       setAnalysisStatus("loading_cache");
-      const cached = await getCachedResults(selectedFlight.id);
+      const cached = await getCachedResults(selectedFlight.id, selectedModelId);
       if (cached) {
         setCachedResult(cached);
         const rd = cached.result_data || {};
@@ -315,7 +326,7 @@ const DroneImagerySection = ({ farmId, farmName = "Farm" }) => {
       }
     };
     checkCache();
-  }, [selectedFlight?.id]);
+  }, [selectedFlight?.id, selectedModelId]);
 
   // Cleanup analysis polling on unmount
   useEffect(() => {
@@ -324,11 +335,44 @@ const DroneImagerySection = ({ farmId, farmName = "Farm" }) => {
     };
   }, []);
 
+  // Fetch available models for the current crop type
+  useEffect(() => {
+    if (!cropType) {
+      setAvailableModels([]);
+      setSelectedModelId(null);
+      return;
+    }
+    const loadModels = async () => {
+      setModelsLoading(true);
+      try {
+        const { models } = await fetchModels(cropType);
+        setAvailableModels(models);
+        if (models.length > 0) {
+          setSelectedModelId(models[0].model_id);
+        } else {
+          setSelectedModelId(null);
+        }
+      } catch (err) {
+        console.warn("Failed to fetch models:", err.message);
+        setAvailableModels([]);
+        setSelectedModelId(null);
+      } finally {
+        setModelsLoading(false);
+      }
+    };
+    loadModels();
+  }, [cropType]);
+
   // Start plant count analysis on current flight image
   const startAnalysis = async () => {
     const filename = getCurrentFilename();
     if (!filename) {
       toast.error("No image available for analysis");
+      return;
+    }
+
+    if (!selectedModelId) {
+      toast.error("No model available for this crop type");
       return;
     }
 
@@ -342,7 +386,7 @@ const DroneImagerySection = ({ farmId, farmName = "Farm" }) => {
 
     try {
       // Images are on the server disk — just pass the filename, no URL needed
-      const { job_id } = await analyzeByFilename(filename, "wheat_plant_counter_v1");
+      const { job_id } = await analyzeByFilename(filename, selectedModelId);
       setAnalysisJobId(job_id);
       setAnalysisMessage("Job submitted. Processing...");
 
@@ -370,6 +414,7 @@ const DroneImagerySection = ({ farmId, farmName = "Farm" }) => {
               jobId: job_id,
               filename,
               result: status.result,
+              modelId: selectedModelId,
             });
 
             // Load the default visualization
@@ -448,15 +493,7 @@ const DroneImagerySection = ({ farmId, farmName = "Farm" }) => {
           `Uploaded ${uploadForm.layerType.toUpperCase()} layer successfully!`
         );
         setShowUploadModal(false);
-        setUploadForm({
-          file: null,
-          flightDate: new Date().toISOString().split("T")[0],
-          layerType: "ndvi",
-          pilotName: "",
-          droneModel: "",
-          bandMapping: null,
-          bandPreset: "",
-        });
+        resetUploadState();
         // Refresh the flights list
         await fetchDroneFlights();
       }
@@ -469,40 +506,105 @@ const DroneImagerySection = ({ farmId, farmName = "Farm" }) => {
     }
   };
 
-  // Handle Google Drive fetch
-  const handleFetchFromDrive = async () => {
-    if (!driveFolderId.trim()) {
-      toast.error("Please enter a Google Drive folder ID");
+  // Handle Google Drive file listing
+  const handleListDriveFiles = async () => {
+    if (!driveInput.trim()) {
+      toast.error("Please enter a Google Drive link or ID");
       return;
     }
 
-    setFetchingFromDrive(true);
+    setDriveListLoading(true);
+    setDriveListError(null);
+    setDriveFiles([]);
+    setDriveSelectedFile(null);
 
     try {
-      const result = await fetchFromGoogleDrive(driveFolderId.trim(), farmId);
+      const result = await listDriveFiles(driveInput.trim());
 
-      const successCount = result.processed.filter((p) => p.success).length;
-      const failCount = result.processed.filter((p) => !p.success).length;
+      if (result.files.length === 0) {
+        const msg = result.skippedCount > 0
+          ? `No GeoTIFF files found (${result.skippedCount} non-GeoTIFF file${result.skippedCount > 1 ? "s" : ""} skipped). Only .tif/.tiff files are supported.`
+          : "No files found at this location.";
+        setDriveListError(msg);
+        return;
+      }
 
-      if (successCount > 0) {
-        toast.success(`Imported ${successCount} file(s) from Google Drive`);
+      setDriveFiles(result.files);
+      // Auto-select if only one file
+      if (result.files.length === 1) {
+        setDriveSelectedFile(result.files[0]);
+      }
+    } catch (error) {
+      console.error("Drive list error:", error);
+      setDriveListError(error.message);
+    } finally {
+      setDriveListLoading(false);
+    }
+  };
+
+  // Handle Google Drive import
+  const handleDriveImport = async () => {
+    if (!driveSelectedFile) {
+      toast.error("Please select a file from Google Drive");
+      return;
+    }
+
+    setUploading(true);
+    setUploadProgress(0);
+    setUploadPhase("downloading");
+
+    try {
+      const result = await importFromDrive(
+        {
+          fileId: driveSelectedFile.id,
+          fileName: driveSelectedFile.name,
+          farmId,
+          flightDate: uploadForm.flightDate,
+          layerType: uploadForm.layerType,
+          bandMapping: uploadForm.bandMapping || null,
+          pilotName: uploadForm.pilotName || null,
+          droneModel: uploadForm.droneModel || null,
+        },
+        ({ phase, progress }) => {
+          setUploadPhase(phase);
+          setUploadProgress(progress);
+        },
+      );
+
+      if (result.success) {
+        toast.success(
+          `Imported ${uploadForm.layerType.toUpperCase()} layer from Google Drive!`
+        );
+        setShowUploadModal(false);
+        resetUploadState();
         await fetchDroneFlights();
       }
-      if (failCount > 0) {
-        toast.error(`Failed to import ${failCount} file(s)`);
-      }
-      if (result.totalFound === 0) {
-        toast.error("No GeoTIFF files found in the folder");
-      }
-
-      setShowDriveModal(false);
-      setDriveFolderId("");
     } catch (error) {
-      console.error("Drive fetch error:", error);
-      toast.error(error.message);
+      console.error("Drive import error:", error);
+      toast.error(`Import failed: ${error.message}`);
     } finally {
-      setFetchingFromDrive(false);
+      setUploading(false);
+      setUploadProgress(0);
+      setUploadPhase("idle");
     }
+  };
+
+  // Reset upload form to defaults
+  const resetUploadState = () => {
+    setUploadForm({
+      file: null,
+      flightDate: new Date().toISOString().split("T")[0],
+      layerType: "ndvi",
+      pilotName: "",
+      droneModel: "",
+      bandMapping: null,
+      bandPreset: "",
+    });
+    setFileSource("local");
+    setDriveInput("");
+    setDriveFiles([]);
+    setDriveSelectedFile(null);
+    setDriveListError(null);
   };
 
   // Handle search by date
@@ -1051,7 +1153,11 @@ const DroneImagerySection = ({ farmId, farmName = "Farm" }) => {
         </button>
         <button
           className="drone-action-btn drive-btn"
-          onClick={() => setShowDriveModal(true)}
+          onClick={() => {
+            setFileSource("drive");
+            setUploadMode("processed");
+            setShowUploadModal(true);
+          }}
           title="Fetch from Google Drive"
         >
           <span className="material-symbols-outlined">cloud_download</span>
@@ -1513,10 +1619,32 @@ const DroneImagerySection = ({ farmId, farmName = "Farm" }) => {
                     Run ML plant counting on this drone image to detect and count
                     individual plants.
                   </p>
+                  {availableModels.length > 0 && (
+                    <div className="model-selector" style={{ marginBottom: "0.75rem" }}>
+                      <label style={{ fontSize: "0.85rem", marginRight: "0.5rem" }}>Model:</label>
+                      <select
+                        value={selectedModelId || ""}
+                        onChange={(e) => setSelectedModelId(e.target.value)}
+                        disabled={analysisStatus === "analyzing"}
+                        style={{ fontSize: "0.85rem", padding: "0.25rem 0.5rem" }}
+                      >
+                        {availableModels.map((m) => (
+                          <option key={m.model_id} value={m.model_id}>
+                            {m.name} (v{m.version})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  {availableModels.length === 0 && cropType && !modelsLoading && (
+                    <p className="analysis-description" style={{ color: "var(--text-secondary)" }}>
+                      No ML models available for crop: {cropType}
+                    </p>
+                  )}
                   <button
                     className="analyze-btn"
                     onClick={startAnalysis}
-                    disabled={analysisStatus === "loading_cache"}
+                    disabled={analysisStatus === "loading_cache" || !selectedModelId}
                   >
                     <span className="material-symbols-outlined">query_stats</span>
                     {analysisStatus === "loading_cache"
@@ -1809,27 +1937,152 @@ const DroneImagerySection = ({ farmId, farmName = "Farm" }) => {
                 {/* Processed GeoTIFF Upload */}
                 {uploadMode === "processed" && (
                   <>
-                    <div className="form-group">
-                      <label>GeoTIFF File *</label>
-                      <div className="file-input-wrapper">
-                        <input
-                          ref={fileInputRef}
-                          type="file"
-                          accept=".tif,.tiff,image/tiff"
-                          onChange={(e) =>
-                            setUploadForm({
-                              ...uploadForm,
-                              file: e.target.files[0],
-                            })
-                          }
-                        />
-                        {uploadForm.file && (
-                          <span className="file-name">
-                            {uploadForm.file.name}
-                          </span>
-                        )}
-                      </div>
+                    {/* File Source Toggle */}
+                    <div className="file-source-toggle">
+                      <button
+                        className={fileSource === "local" ? "active" : ""}
+                        onClick={() => {
+                          setFileSource("local");
+                          setDriveInput("");
+                          setDriveFiles([]);
+                          setDriveSelectedFile(null);
+                          setDriveListError(null);
+                        }}
+                        disabled={uploading}
+                      >
+                        <span className="material-symbols-outlined">upload_file</span>
+                        Local File
+                      </button>
+                      <button
+                        className={fileSource === "drive" ? "active" : ""}
+                        onClick={() => {
+                          setFileSource("drive");
+                          setUploadForm({ ...uploadForm, file: null });
+                        }}
+                        disabled={uploading}
+                      >
+                        <span className="material-symbols-outlined">cloud_download</span>
+                        Google Drive
+                      </button>
                     </div>
+
+                    {/* Local File Input */}
+                    {fileSource === "local" && (
+                      <div className="form-group">
+                        <label>GeoTIFF File *</label>
+                        <div className="file-input-wrapper">
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept=".tif,.tiff,image/tiff"
+                            onChange={(e) =>
+                              setUploadForm({
+                                ...uploadForm,
+                                file: e.target.files[0],
+                              })
+                            }
+                          />
+                          {uploadForm.file && (
+                            <span className="file-name">
+                              {uploadForm.file.name}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Google Drive File Source */}
+                    {fileSource === "drive" && (
+                      <div className="drive-source-section">
+                        <div className="form-group">
+                          <label>Google Drive Link *</label>
+                          <div className="drive-input-row">
+                            <input
+                              type="text"
+                              placeholder="Paste Drive file link, folder link, or ID"
+                              value={driveInput}
+                              onChange={(e) => {
+                                setDriveInput(e.target.value);
+                                setDriveListError(null);
+                              }}
+                              disabled={uploading || driveListLoading}
+                            />
+                            <button
+                              className="drive-list-btn"
+                              onClick={handleListDriveFiles}
+                              disabled={uploading || driveListLoading || !driveInput.trim()}
+                            >
+                              {driveListLoading ? (
+                                <div className="loader small"></div>
+                              ) : (
+                                <span className="material-symbols-outlined">search</span>
+                              )}
+                              {driveListLoading ? "Searching..." : "Find Files"}
+                            </button>
+                          </div>
+                          <small className="input-help">
+                            Accepts file links, folder links, or raw IDs. Folder must be shared with "Anyone with the link".
+                          </small>
+                        </div>
+
+                        {/* Drive Error */}
+                        {driveListError && (
+                          <div className="drive-error">
+                            <span className="material-symbols-outlined">error</span>
+                            <span>{driveListError}</span>
+                          </div>
+                        )}
+
+                        {/* Drive File List (multiple files in folder) */}
+                        {driveFiles.length > 1 && (
+                          <div className="drive-file-list">
+                            <label>Select a GeoTIFF file:</label>
+                            <div className="drive-file-table">
+                              {driveFiles.map((f) => (
+                                <label
+                                  key={f.id}
+                                  className={`drive-file-row ${driveSelectedFile?.id === f.id ? "selected" : ""}`}
+                                >
+                                  <input
+                                    type="radio"
+                                    name="driveFile"
+                                    checked={driveSelectedFile?.id === f.id}
+                                    onChange={() => setDriveSelectedFile(f)}
+                                  />
+                                  <span className="drive-file-name">{f.name}</span>
+                                  <span className="drive-file-size">
+                                    {f.size > 0 ? `${(f.size / (1024 * 1024)).toFixed(1)} MB` : "—"}
+                                  </span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Single file auto-selected */}
+                        {driveSelectedFile && driveFiles.length <= 1 && (
+                          <div className="drive-file-selected">
+                            <span className="material-symbols-outlined">check_circle</span>
+                            <span>
+                              {driveSelectedFile.name}
+                              {driveSelectedFile.size > 0 && (
+                                <> — {(driveSelectedFile.size / (1024 * 1024)).toFixed(1)} MB</>
+                              )}
+                            </span>
+                          </div>
+                        )}
+
+                        <div className="info-box" style={{ marginTop: "10px" }}>
+                          <span className="material-symbols-outlined">info</span>
+                          <div>
+                            <strong>Supported format:</strong> GeoTIFF (.tif, .tiff) only.
+                            <p style={{ margin: "4px 0 0", fontSize: "0.82rem", color: "#888" }}>
+                              JPEG/PNG files cannot be used — GeoTIFF is required for georeferenced map display.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     <div className="form-group">
                       <label>Layer Type *</label>
@@ -2020,11 +2273,20 @@ const DroneImagerySection = ({ farmId, farmName = "Farm" }) => {
                           ></div>
                         </div>
                         <span>
-                          {uploadProgress < 100
+                          {uploadPhase === "downloading"
+                            ? `Downloading from Google Drive... ${uploadProgress}%`
+                            : uploadPhase === "registering"
+                            ? "Registering in database..."
+                            : uploadPhase === "complete"
+                            ? "Complete!"
+                            : uploadProgress < 100
                             ? `Uploading... ${uploadProgress}%`
                             : "Processing on server..."}
-                          {uploadForm.file && (
+                          {fileSource === "local" && uploadForm.file && (
                             <> — {(uploadForm.file.size / (1024 * 1024)).toFixed(1)} MB</>
+                          )}
+                          {fileSource === "drive" && driveSelectedFile && driveSelectedFile.size > 0 && (
+                            <> — {(driveSelectedFile.size / (1024 * 1024)).toFixed(1)} MB</>
                           )}
                         </span>
                       </div>
@@ -2156,10 +2418,20 @@ const DroneImagerySection = ({ farmId, farmName = "Farm" }) => {
                 {uploadMode === "processed" ? (
                   <button
                     className="submit-btn"
-                    onClick={handleFileUpload}
-                    disabled={uploading || !uploadForm.file}
+                    onClick={fileSource === "drive" ? handleDriveImport : handleFileUpload}
+                    disabled={
+                      uploading ||
+                      (fileSource === "local" && !uploadForm.file) ||
+                      (fileSource === "drive" && !driveSelectedFile)
+                    }
                   >
-                    {uploading ? "Uploading..." : "Upload"}
+                    {uploading
+                      ? fileSource === "drive"
+                        ? "Importing..."
+                        : "Uploading..."
+                      : fileSource === "drive"
+                      ? "Import from Drive"
+                      : "Upload"}
                   </button>
                 ) : (
                   <button
@@ -2247,85 +2519,6 @@ const DroneImagerySection = ({ farmId, farmName = "Farm" }) => {
           document.body
         )}
 
-      {/* Google Drive Modal - Rendered via Portal */}
-      {showDriveModal &&
-        createPortal(
-          <div
-            className="drone-modal-overlay"
-            onClick={() => setShowDriveModal(false)}
-            onMouseMove={(e) => e.stopPropagation()}
-            onMouseOver={(e) => e.stopPropagation()}
-          >
-            <div className="drone-modal" onClick={(e) => e.stopPropagation()}>
-              <div className="drone-modal-header">
-                <h3>Import from Google Drive</h3>
-                <button
-                  className="close-btn"
-                  onClick={() => setShowDriveModal(false)}
-                >
-                  <span className="material-symbols-outlined">close</span>
-                </button>
-              </div>
-
-              <div className="drone-modal-content">
-                <p className="modal-description">
-                  Enter the Google Drive folder ID where the drone imagery is
-                  stored. The folder must be shared with "Anyone with the link".
-                </p>
-
-                <div className="form-group">
-                  <label>Google Drive Folder ID *</label>
-                  <input
-                    type="text"
-                    placeholder="e.g., 1a2b3c4d5e6f7g8h9i0j"
-                    value={driveFolderId}
-                    onChange={(e) => setDriveFolderId(e.target.value)}
-                  />
-                  <small className="input-help">
-                    Find this in the folder URL: drive.google.com/drive/folders/
-                    <strong>[FOLDER_ID]</strong>
-                  </small>
-                </div>
-
-                <div className="info-box">
-                  <span className="material-symbols-outlined">info</span>
-                  <div>
-                    <strong>Supported file formats:</strong>
-                    <p>GeoTIFF (.tif, .tiff)</p>
-                    <strong>Naming convention:</strong>
-                    <p>farmId_YYYYMMDD_layerType.tif</p>
-                    <p>Example: farm123_20241208_ndvi.tif</p>
-                  </div>
-                </div>
-
-                {fetchingFromDrive && (
-                  <div className="fetch-progress">
-                    <div className="loader"></div>
-                    <span>Fetching files from Google Drive...</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="drone-modal-footer">
-                <button
-                  className="cancel-btn"
-                  onClick={() => setShowDriveModal(false)}
-                  disabled={fetchingFromDrive}
-                >
-                  Cancel
-                </button>
-                <button
-                  className="submit-btn"
-                  onClick={handleFetchFromDrive}
-                  disabled={fetchingFromDrive || !driveFolderId.trim()}
-                >
-                  {fetchingFromDrive ? "Fetching..." : "Fetch Files"}
-                </button>
-              </div>
-            </div>
-          </div>,
-          document.body
-        )}
     </div>
   );
 };

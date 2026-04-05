@@ -312,146 +312,115 @@ export const deleteDroneImagery = async (farmId, layerId, filename) => {
 };
 
 /**
- * Fetch files from a shared Google Drive folder
- * Requires Google Drive API key and folder ID
+ * List GeoTIFF files from a Google Drive URL, folder link, or raw ID.
+ * All Drive API calls go through the backend (API key is server-side).
+ * @param {string} input - Any Google Drive URL or raw ID
+ * @returns {Promise<{type: string, files: Array, skippedCount: number}>}
  */
-export const fetchFromGoogleDrive = async (folderId, farmId) => {
-  const apiKey = import.meta.env.VITE_GOOGLE_DRIVE_API_KEY;
+export const listDriveFiles = async (input) => {
+  const resp = await fetch(`${COMPUTE_API}/api/v1/imagery/drive/list-files`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ input }),
+  });
 
-  if (!apiKey) {
-    throw new Error(
-      "Google Drive API key not configured. Add VITE_GOOGLE_DRIVE_API_KEY to .env"
-    );
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err.detail || `Failed to list Drive files (${resp.status})`);
   }
 
-  try {
-    // List files in the folder
-    const listUrl = `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents&key=${apiKey}&fields=files(id,name,mimeType,size,modifiedTime)`;
+  const data = await resp.json();
+  return {
+    type: data.type,
+    files: data.files,
+    skippedCount: data.skipped_count,
+  };
+};
 
-    const listResponse = await fetch(listUrl);
-    if (!listResponse.ok) {
-      throw new Error("Failed to list Google Drive files");
-    }
+/**
+ * Import a single file from Google Drive directly to the server.
+ * The server downloads from Drive and registers in DB.
+ * Returns a streaming NDJSON response for real-time progress.
+ *
+ * @param {object} params - Import parameters
+ * @param {string} params.fileId - Google Drive file ID
+ * @param {string} params.fileName - Original filename
+ * @param {string} params.farmId - Farm ID
+ * @param {string} params.flightDate - YYYY-MM-DD
+ * @param {string} params.layerType - Layer type (rgb, ndvi, etc.)
+ * @param {Array|null} params.bandMapping - Band mapping array (for multispectral)
+ * @param {string|null} params.pilotName
+ * @param {string|null} params.droneModel
+ * @param {number|null} params.altitude
+ * @param {function|null} onProgress - Called with {phase, progress} during import
+ * @returns {Promise<object>} Final result from server
+ */
+export const importFromDrive = async (
+  { fileId, fileName, farmId, flightDate, layerType, bandMapping = null, pilotName = null, droneModel = null, altitude = null },
+  onProgress = null,
+) => {
+  const body = {
+    file_id: fileId,
+    file_name: fileName,
+    farm_id: farmId,
+    flight_date: flightDate,
+    layer_type: layerType,
+  };
+  if (bandMapping) body.band_mapping = JSON.stringify(bandMapping);
+  if (pilotName) body.pilot_name = pilotName;
+  if (droneModel) body.drone_model = droneModel;
+  if (altitude != null) body.altitude = altitude;
 
-    const { files } = await listResponse.json();
+  const resp = await fetch(`${COMPUTE_API}/api/v1/imagery/drive/import`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
 
-    // Filter for GeoTIFF files
-    const tiffFiles = files.filter(
-      (f) =>
-        f.name.endsWith(".tif") ||
-        f.name.endsWith(".tiff") ||
-        f.mimeType === "image/tiff"
-    );
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err.detail || `Drive import failed (${resp.status})`);
+  }
 
-    const results = [];
+  // Read NDJSON stream line by line
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let finalResult = null;
 
-    for (const file of tiffFiles) {
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop(); // keep incomplete line in buffer
+
+    for (const line of lines) {
+      if (!line.trim()) continue;
       try {
-        // Download the file
-        const downloadUrl = `https://www.googleapis.com/drive/v3/files/${file.id}?alt=media&key=${apiKey}`;
-        const downloadResponse = await fetch(downloadUrl);
-
-        if (!downloadResponse.ok) continue;
-
-        const blob = await downloadResponse.blob();
-        const fileObj = new File([blob], file.name, { type: "image/tiff" });
-
-        // Parse filename to extract metadata
-        // Expected format: farmId_YYYYMMDD_layerType.tif or just layerType.tif
-        const parsed = parseFilename(file.name);
-
-        // Upload to our storage (will automatically use chunked if > 80MB)
-        const result = await uploadDroneImagery({
-          file: fileObj,
-          farmId: farmId,
-          flightDate: parsed.date || new Date().toISOString().split("T")[0],
-          layerType: parsed.layerType || "rgb",
-        });
-
-        results.push({
-          originalName: file.name,
-          ...result,
-        });
-      } catch (fileError) {
-        console.error(`Error processing file ${file.name}:`, fileError);
-        results.push({
-          originalName: file.name,
-          success: false,
-          error: fileError.message,
-        });
+        const msg = JSON.parse(line);
+        if (msg.phase === "error") {
+          throw new Error(msg.message || "Import failed");
+        }
+        if (msg.phase === "complete") {
+          finalResult = msg.result;
+        }
+        if (onProgress) {
+          onProgress({ phase: msg.phase, progress: msg.progress || 0 });
+        }
+      } catch (e) {
+        if (e.message && !e.message.startsWith("Unexpected")) throw e;
+        // skip malformed lines
       }
     }
-
-    return {
-      totalFound: tiffFiles.length,
-      processed: results,
-    };
-  } catch (error) {
-    console.error("Error fetching from Google Drive:", error);
-    throw error;
-  }
-};
-
-/**
- * Fetch files from a shared OneDrive folder
- * Requires Microsoft Graph API setup
- */
-export const fetchFromOneDrive = async (shareLink, farmId) => {
-  // OneDrive share links need to be converted to API endpoint
-  // Format: https://1drv.ms/f/s!xxx or similar
-
-  // For shared links, we need to use the sharing API
-  // This requires OAuth setup - for now, throw an informative error
-
-  throw new Error(
-    "OneDrive integration requires Microsoft Graph API setup. " +
-      "Please use the manual upload option or Google Drive for now."
-  );
-};
-
-/**
- * Parse a filename to extract date and layer type
- * Supports formats:
- * - farmId_YYYYMMDD_layerType.tif
- * - YYYYMMDD_layerType.tif
- * - layerType.tif
- * - ndvi_20241208.tif
- */
-const parseFilename = (filename) => {
-  const name = filename.replace(/\.(tif|tiff)$/i, "");
-  const parts = name.split("_");
-
-  let date = null;
-  let layerType = "rgb";
-
-  // Look for date pattern (YYYYMMDD or YYYY-MM-DD)
-  for (const part of parts) {
-    if (/^\d{8}$/.test(part)) {
-      date = `${part.slice(0, 4)}-${part.slice(4, 6)}-${part.slice(6, 8)}`;
-    } else if (/^\d{4}-\d{2}-\d{2}$/.test(part)) {
-      date = part;
-    }
   }
 
-  // Look for layer type
-  const layerTypes = [
-    "rgb",
-    "ndvi",
-    "ndre",
-    "moisture",
-    "thermal",
-    "lai",
-    "gndvi",
-    "savi",
-    "multispectral",
-  ];
-  for (const part of parts) {
-    if (layerTypes.includes(part.toLowerCase())) {
-      layerType = part.toLowerCase();
-    }
+  if (!finalResult) {
+    throw new Error("Import stream ended without a result.");
   }
 
-  return { date, layerType };
+  return finalResult;
 };
 
 /**
