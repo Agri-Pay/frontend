@@ -7,6 +7,9 @@
 const WEBODM_URL = import.meta.env.VITE_WEBODM_URL || "http://localhost:8080";
 const WEBODM_TOKEN = import.meta.env.VITE_WEBODM_TOKEN || "";
 
+/** True only when the user has explicitly set a WebODM URL */
+const isWebODMConfigured = !!import.meta.env.VITE_WEBODM_URL;
+
 /**
  * Get authentication headers
  */
@@ -41,9 +44,12 @@ export const login = async (username = "admin", password = "admin") => {
 };
 
 /**
- * Check if WebODM is running and accessible
+ * Check if WebODM is running and accessible.
+ * Skips the network request entirely when VITE_WEBODM_URL is not set,
+ * avoiding ERR_CONNECTION_REFUSED noise in the browser console.
  */
 export const checkHealth = async () => {
+  if (!isWebODMConfigured) return false;
   try {
     const response = await fetch(`${WEBODM_URL}/api/`, {
       method: "GET",

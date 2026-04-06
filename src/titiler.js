@@ -391,6 +391,17 @@ export const MICASENSE_BANDS = {
 };
 
 /**
+ * 5-band MicaSense RedEdge band definitions (standard 5-band camera)
+ */
+export const MICASENSE_5BAND = {
+  1: { name: "Blue", wavelength: "475 nm", color: "#0066ff" },
+  2: { name: "Green", wavelength: "560 nm", color: "#00cc00" },
+  3: { name: "Red", wavelength: "668 nm", color: "#ff0000" },
+  4: { name: "Red Edge", wavelength: "717 nm", color: "#ff6600" },
+  5: { name: "NIR", wavelength: "840 nm", color: "#990099" },
+};
+
+/**
  * Compute vegetation indices from raw 10-band MicaSense values
  * @param {Array<number>} values - Array of 10 band values [b1, b2, ..., b10]
  * @returns {Object|null} Object with computed indices or null if nodata

@@ -10,6 +10,22 @@ const COMPUTE_API =
   import.meta.env.VITE_COMPUTE_API_URL ?? "http://localhost:8001";
 
 // ---------------------------------------------------------------------------
+// Model discovery
+// ---------------------------------------------------------------------------
+
+/**
+ * Fetch available ML models, optionally filtered by crop.
+ * Returns { models: [...], count: N }
+ */
+export async function fetchModels(crop = null) {
+  const params = new URLSearchParams();
+  if (crop) params.set("crop", crop);
+  const res = await fetch(`${COMPUTE_API}/api/v1/models?${params}`);
+  if (!res.ok) throw new Error(`Failed to fetch models (${res.status})`);
+  return res.json();
+}
+
+// ---------------------------------------------------------------------------
 // Plant counting
 // ---------------------------------------------------------------------------
 
@@ -19,7 +35,7 @@ const COMPUTE_API =
  */
 export async function analyzeByFilename(
   filename,
-  modelId = "wheat_plant_counter_v1",
+  modelId,
   imageUrl = null
 ) {
   const body = { filename, model_id: modelId };
@@ -102,7 +118,7 @@ export async function verifyMilestone(milestoneId) {
  */
 export async function getCachedResults(
   flightId,
-  modelId = "wheat_plant_counter_v1"
+  modelId
 ) {
   const { data, error } = await supabase
     .from("ml_results")
@@ -129,7 +145,7 @@ export async function saveResults({
   jobId,
   filename,
   result,
-  modelId = "wheat_plant_counter_v1",
+  modelId,
 }) {
   const { error } = await supabase.from("ml_results").insert({
     farm_id: farmId,

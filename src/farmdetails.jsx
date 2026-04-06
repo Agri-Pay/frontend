@@ -1280,7 +1280,12 @@ const FarmDetailsPage = () => {
           Imagery
         </p>
         <div className="data-grid" style={{ marginBottom: "2rem" }}>
-          <DroneImagerySection farmId={farmId} />
+          <DroneImagerySection
+            farmId={farmId}
+            cropType={
+              availableCrops.find((c) => c.id === activeCycle?.crop_id)?.name?.toLowerCase() || null
+            }
+          />
           <SatelliteImagerySection farmId={farmId} coords={farmCoords} />
         </div>
 
