@@ -1,501 +1,777 @@
-/* src/pages/FarmPaymentsPage.css - Matching farmreports.css patterns */
+/* ============================================================
+   farmpayments.css — AgriPay Payment Tracking Page
+   Matches the AgriPay / Regenerative Ledger design template
+   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; }
+
+/* ── Layout ────────────────────────────────────────────────── */
+.fp-container {
+  display: flex;
+  min-height: 100vh;
+  background: #f4f6f9;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.fp-main {
+  flex: 1;
+  padding: 2rem 2.5rem 4rem;
+  overflow-y: auto;
+  min-width: 0;
+  position: relative;
+}
+
+/* ── Page Header ────────────────────────────────────────────── */
+.fp-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+  flex-wrap: wrap;
+}
+
+.fp-header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.fp-back-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, border-color 0.15s;
+  color: #475569;
+  margin-top: 2px;
+}
+
+.fp-back-icon-btn:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.fp-back-icon-btn .material-symbols-outlined {
+  font-size: 1.25rem;
+}
+
+.fp-page-title {
+  font-size: 1.625rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 0.2rem;
+  letter-spacing: -0.025em;
+}
+
+.fp-page-sub {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.fp-farm-name {
+  color: #334155;
+  font-weight: 600;
+}
+
+.fp-sep {
+  color: #cbd5e1;
+}
+
+.fp-crop-tag {
+  color: #22c55e;
+  font-weight: 700;
+}
+
+.fp-ledger-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #22c55e;
+  text-decoration: none;
+  padding: 0.5rem 0.875rem;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  background: #f0fdf4;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.fp-ledger-link:hover {
+  background: #dcfce7;
+  border-color: #86efac;
+}
+
+.fp-ledger-link .material-symbols-outlined {
+  font-size: 0.9rem;
+}
+
+.fp-ledger-link.small {
+  font-size: 0.75rem;
+  padding: 0.375rem 0.75rem;
+}
+
+/* ── Summary Row ────────────────────────────────────────────── */
+.fp-summary-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.fp-sum-card {
+  background: #fff;
+  border: 1px solid #e8edf2;
+  border-radius: 16px;
+  padding: 1.5rem 1.75rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  transition: box-shadow 0.18s, transform 0.15s;
+}
 
-/* Main Container */
-.farm-payments-container {
-    display: flex;
-    min-height: 100vh;
-    background-color: #f8fafc;
+.fp-sum-card:hover {
+  box-shadow: 0 6px 20px rgba(0,0,0,0.07);
+  transform: translateY(-1px);
 }
 
-.farm-payments-main {
-    flex-grow: 1;
-    padding: 2.5rem 3rem;
+.fp-sum-card.pending-card {
+  border-color: #e8edf2;
 }
 
-/* Page Title Section */
-.page-title-section {
-    margin-bottom: 2.5rem;
+.fp-sum-card.next-card {
+  border-color: #e8edf2;
+  background: #fff;
 }
 
-.title-with-back {
-    display: flex;
-    align-items: flex-start;
-    gap: 1rem;
+.fp-sum-eyebrow {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  margin-bottom: 0.1rem;
 }
 
-.back-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.5rem;
-    background-color: #f1f5f9;
-    border: 1px solid #e2e8f0;
-    border-radius: 0.5rem;
-    cursor: pointer;
-    transition: background-color 0.2s;
-    margin-top: 0.25rem;
+.fp-sum-eyebrow.next {
+  color: #22c55e;
+  font-weight: 800;
 }
 
-.back-btn:hover {
-    background-color: #e2e8f0;
+.fp-sum-big {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
 }
 
-.back-btn .material-symbols-outlined {
-    font-size: 1.5rem;
-    color: #64748b;
+.fp-progress-track {
+  width: 100%;
+  height: 5px;
+  background: #f1f5f9;
+  border-radius: 99px;
+  overflow: hidden;
+  margin: 0.35rem 0;
 }
 
-.farm-name-title {
-    font-size: 2.5rem;
-    font-weight: 800;
-    margin: 0;
-    color: #1e293b;
+.fp-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%);
+  border-radius: 99px;
+  transition: width 0.8s cubic-bezier(0.22, 0.68, 0, 1.2);
 }
 
-.farm-subtitle {
-    font-size: 1.125rem;
-    color: #64748b;
-    margin-top: 0.25rem;
+.fp-sum-sub {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
-/* Error State */
-.error-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 4rem 2rem;
-    text-align: center;
-    background-color: #fff;
-    border-radius: 1rem;
-    border: 1px solid #e2e8f0;
+.fp-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
-.error-state .material-symbols-outlined {
-    font-size: 4rem;
-    color: #ef4444;
-    margin-bottom: 1rem;
+.fp-dot.pending {
+  background: #f59e0b;
+  box-shadow: 0 0 0 2px #fef3c7;
 }
 
-.error-state p {
-    font-size: 1.125rem;
-    color: #64748b;
-    margin-bottom: 1.5rem;
+/* Next Milestone body */
+.fp-next-body {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-top: 0.25rem;
 }
 
-.back-to-payments-btn {
-    padding: 0.75rem 1.5rem;
-    background-color: #22c55e;
-    color: white;
-    border: none;
-    border-radius: 0.5rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.2s;
+.fp-next-title {
+  font-size: 1.375rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
 }
 
-.back-to-payments-btn:hover {
-    background-color: #16a34a;
+.fp-next-date {
+  font-size: 0.78rem;
+  color: #64748b;
+  margin-top: 0.2rem;
 }
 
-/* Empty State */
-.empty-payments-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 4rem 2rem;
-    text-align: center;
-    background-color: #fff;
-    border-radius: 1rem;
-    border: 1px solid #e2e8f0;
+.fp-next-icon {
+  font-size: 2rem;
+  color: #22c55e;
+  opacity: 0.7;
 }
 
-.empty-payments-state .material-symbols-outlined {
-    font-size: 5rem;
-    color: #cbd5e1;
-    margin-bottom: 1.5rem;
+/* ── Section Wrapper ────────────────────────────────────────── */
+.fp-section {
+  margin-bottom: 2rem;
 }
 
-.empty-payments-state h3 {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #1e293b;
-    margin: 0 0 0.75rem 0;
+.fp-section-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 1rem;
+  letter-spacing: -0.01em;
 }
 
-.empty-payments-state p {
-    font-size: 1rem;
-    color: #64748b;
-    margin: 0 0 1.5rem 0;
-    max-width: 500px;
+.fp-section-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
 }
 
-/* Crop Cycles Container */
-.crop-cycles-container {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
+.fp-section-row .fp-section-title {
+  margin: 0;
 }
 
-/* Crop Cycle Payment Section */
-.crop-cycle-payment-section {
-    background-color: #fff;
-    border-radius: 1rem;
-    border: 1px solid #e2e8f0;
-    overflow: hidden;
+/* ── Verification Card ──────────────────────────────────────── */
+.fp-verif-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
-/* Cycle Header */
-.cycle-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1.5rem;
-    cursor: pointer;
-    transition: background-color 0.2s;
-    border-bottom: 1px solid #f1f5f9;
+.verif-card {
+  background: #fff;
+  border: 1px solid #e8edf2;
+  border-radius: 16px;
+  padding: 1.5rem 1.75rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2rem;
+  align-items: center;
 }
 
-.cycle-header:hover {
-    background-color: #f8fafc;
+.verif-card-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
-.cycle-info {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
+.verif-active-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.175rem 0.55rem;
+  border-radius: 99px;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #86efac;
+  width: fit-content;
 }
 
-.cycle-info .expand-icon {
-    font-size: 1.5rem;
-    color: #64748b;
-    transition: transform 0.2s;
+.verif-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #475569;
 }
 
-.cycle-info .crop-icon {
-    font-size: 2rem;
-    color: #22c55e;
+.verif-amount {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.03em;
 }
 
-.cycle-info h3 {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: #1e293b;
-    margin: 0;
+.verif-desc {
+  font-size: 0.8125rem;
+  color: #64748b;
+  line-height: 1.6;
+  max-width: 480px;
 }
 
-.cycle-dates {
-    font-size: 0.875rem;
-    color: #64748b;
-    margin: 0.25rem 0 0 0;
+.verif-card-right {
+  flex-shrink: 0;
 }
 
-/* Cycle Summary */
-.cycle-summary {
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
+/* ── Blockchain Step Tracker ────────────────────────────────── */
+.bct-root {
+  display: flex;
+  align-items: center;
+  gap: 0;
 }
 
-.cycle-status-badge {
-    padding: 0.375rem 0.75rem;
-    border-radius: 999px;
-    font-size: 0.875rem;
-    font-weight: 600;
+.bct-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
 }
 
-.cycle-status-badge.active {
-    background-color: #dbeafe;
-    color: #2563eb;
+.bct-circle {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid transparent;
+  transition: all 0.2s;
 }
 
-.cycle-status-badge.completed {
-    background-color: #dcfce7;
-    color: #16a34a;
+.bct-step.done   .bct-circle {
+  background: #22c55e;
+  border-color: #22c55e;
 }
 
-.cycle-earnings {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+.bct-step.current .bct-circle {
+  background: #f0fdf4;
+  border-color: #22c55e;
 }
 
-.cycle-earnings .earnings-label {
-    font-size: 0.875rem;
-    color: #64748b;
-    font-weight: 600;
+.bct-step.future  .bct-circle {
+  background: #f8fafc;
+  border-color: #e2e8f0;
 }
 
-.cycle-earnings .earnings-amount {
-    font-size: 1.125rem;
-    color: #15803d;
-    font-weight: 700;
+.bct-step.done    .bct-circle .material-symbols-outlined { color: #fff; font-size: 1.1rem; }
+.bct-step.current .bct-circle .material-symbols-outlined { color: #22c55e; font-size: 1.1rem; }
+.bct-step.future  .bct-circle .material-symbols-outlined { color: #cbd5e1; font-size: 1.1rem; }
+
+.bct-label {
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.bct-step.done    .bct-label  { color: #22c55e; }
+.bct-step.current .bct-label  { color: #22c55e; }
+.bct-step.future  .bct-label  { color: #cbd5e1; }
+
+.bct-connector {
+  width: 40px;
+  height: 3px;
+  background: #e2e8f0;
+  margin-bottom: 20px; /* aligns with circle center */
+  border-radius: 99px;
+  transition: background 0.3s;
+  flex-shrink: 0;
+}
+
+.bct-connector.done   { background: #22c55e; }
+.bct-connector.active { background: linear-gradient(90deg, #22c55e 40%, #e2e8f0 100%); }
+
+/* ── Blockchain Timeline ────────────────────────────────────── */
+.fp-timeline-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.tl-row {
+  background: #fff;
+  border: 1px solid #e8edf2;
+  border-radius: 16px;
+  padding: 1.5rem 1.75rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  display: grid;
+  grid-template-columns: 220px 1fr auto;
+  gap: 2rem;
+  align-items: center;
+  transition: box-shadow 0.18s, transform 0.15s;
+}
+
+.tl-row:hover {
+  box-shadow: 0 8px 24px rgba(0,0,0,0.07);
+  transform: translateY(-1px);
+}
+
+/* Left */
+.tl-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.tl-status-badge {
+  display: inline-flex;
+  padding: 0.175rem 0.55rem;
+  border-radius: 99px;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  width: fit-content;
+}
+
+.tl-status-badge.completed {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #86efac;
+}
+
+.tl-status-badge.processing {
+  background: #dbeafe;
+  color: #1d4ed8;
+  border: 1px solid #93c5fd;
+}
+
+.tl-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.tl-release {
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
+.tl-amount {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #22c55e;
+  letter-spacing: -0.02em;
+  margin-top: 0.2rem;
+}
+
+/* Date columns */
+.tl-dates {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+.tl-date-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.tl-date-label {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  line-height: 1.4;
 }
 
-.cycle-count {
-    font-size: 0.875rem;
-    color: #64748b;
-    background-color: #f1f5f9;
-    padding: 0.25rem 0.75rem;
-    border-radius: 999px;
+.tl-date-val {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #334155;
 }
 
-/* Milestones Payment List */
-.milestones-payment-list {
-    padding: 1rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
+/* Blockchain card */
+.tl-chain-card {
+  background: #f8fafc;
+  border: 1px solid #e8edf2;
+  border-radius: 12px;
+  padding: 0.875rem 1.125rem;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
-.no-milestones-message {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 2rem;
-    background-color: #f8fafc;
-    border-radius: 0.5rem;
-    color: #64748b;
+.tl-chain-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
 }
 
-.no-milestones-message .material-symbols-outlined {
-    font-size: 1.5rem;
+.tl-chain-label {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  white-space: nowrap;
 }
 
-/* Payment Milestone Item */
-.payment-milestone-item {
-    background-color: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 0.75rem;
-    padding: 1.25rem;
-    transition: border-color 0.2s, box-shadow 0.2s;
+.tl-chain-val {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #334155;
 }
 
-.payment-milestone-item:hover {
-    border-color: #cbd5e1;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+.tl-chain-val.network {
+  color: #7c3aed;
+  font-weight: 700;
 }
 
-/* Milestone Header Row */
-.milestone-header-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 1rem;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid #e2e8f0;
+.tl-chain-val.hash {
+  font-family: 'Courier New', monospace;
+  font-size: 0.72rem;
+  color: #22c55e;
 }
 
-.milestone-info h4 {
-    font-size: 1.125rem;
-    font-weight: 700;
-    color: #1e293b;
-    margin: 0 0 0.25rem 0;
+.tl-hash-link {
+  color: #22c55e;
+  text-decoration: none;
 }
 
-.milestone-date {
-    font-size: 0.875rem;
-    color: #64748b;
+.tl-hash-link:hover {
+  text-decoration: underline;
 }
 
-.milestone-payment-amount .amount-value {
-    font-size: 1.5rem;
-    font-weight: 800;
-    color: #15803d;
+.tl-hash-pending {
+  color: #f59e0b;
+  font-style: italic;
 }
 
-/* Milestone Status Row */
-.milestone-status-row {
-    display: flex;
-    gap: 2rem;
-    margin-bottom: 1rem;
+/* ── All Milestones Table ───────────────────────────────────── */
+.fp-ms-table-wrap {
+  background: #fff;
+  border: 1px solid #e8edf2;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
 }
 
-.status-group {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+.fp-ms-table {
+  width: 100%;
+  border-collapse: collapse;
 }
 
-.status-label {
-    font-size: 0.875rem;
-    color: #64748b;
-    font-weight: 600;
+.fp-ms-table th {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+  padding: 0.875rem 1.375rem;
+  background: #f8fafc;
+  border-bottom: 1px solid #e8edf2;
+  text-align: left;
 }
 
-.status-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.375rem;
-    padding: 0.375rem 0.75rem;
-    border-radius: 999px;
-    font-size: 0.875rem;
-    font-weight: 600;
+.fp-ms-table td {
+  padding: 0.875rem 1.375rem;
+  font-size: 0.8125rem;
+  color: #334155;
+  border-bottom: 1px solid #f1f5f9;
 }
 
-.status-badge .material-symbols-outlined {
-    font-size: 1rem;
+.fp-ms-table tbody tr:last-child td {
+  border-bottom: none;
 }
 
-/* Approval Status Badges */
-.status-badge.verified {
-    background-color: #dcfce7;
-    color: #16a34a;
+.fp-ms-table tbody tr:hover td {
+  background: #f8fafc;
 }
 
-.status-badge.pending {
-    background-color: #fef3c7;
-    color: #d97706;
+.ms-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: #0f172a;
 }
 
-/* Payment Status Badges */
-.status-badge.payment-paid {
-    background-color: #dcfce7;
-    color: #16a34a;
+.ms-table-icon {
+  font-size: 1rem;
+  color: #22c55e;
 }
 
-.status-badge.payment-pending {
-    background-color: #fef3c7;
-    color: #d97706;
+.ms-amount-cell {
+  font-weight: 700;
+  color: #15803d;
 }
 
-.status-badge.payment-processing {
-    background-color: #dbeafe;
-    color: #2563eb;
+.fp-date-cell {
+  color: #64748b;
 }
 
-.status-badge.payment-failed {
-    background-color: #fee2e2;
-    color: #dc2626;
+/* ── Status Pills ───────────────────────────────────────────── */
+.fp-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.225rem 0.65rem;
+  border-radius: 99px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  text-transform: capitalize;
 }
+
+.fp-pill.approval-verified   { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+.fp-pill.approval-pending    { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+
+.fp-pill.payment-paid        { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+.fp-pill.payment-pending     { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+.fp-pill.payment-processing  { background: #dbeafe; color: #1d4ed8; border: 1px solid #93c5fd; }
+.fp-pill.payment-failed      { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
 
-/* Milestone Actions Row */
-.milestone-actions-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
+/* ── Shared Button ──────────────────────────────────────────── */
+.fp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.625rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.12s;
 }
 
-.action-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.625rem 1rem;
-    background-color: #f1f5f9;
-    border: 1px solid #cbd5e1;
-    border-radius: 0.5rem;
-    color: #475569;
-    font-weight: 600;
-    text-decoration: none;
-    cursor: pointer;
-    transition: all 0.2s;
+.fp-btn.solid {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(34,197,94,0.25);
 }
 
-.action-btn:hover {
-    background-color: #e2e8f0;
-    border-color: #94a3b8;
-    color: #1e293b;
+.fp-btn.solid:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
 }
 
-.action-btn .material-symbols-outlined {
-    font-size: 1.125rem;
+/* ── Empty State ────────────────────────────────────────────── */
+.fp-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+  background: #fff;
+  border: 1px solid #e8edf2;
+  border-radius: 16px;
+  gap: 0.75rem;
 }
 
-.action-btn.view-report {
-    background-color: #22c55e;
-    border-color: #22c55e;
-    color: white;
+.fp-empty .material-symbols-outlined {
+  font-size: 3rem;
+  color: #cbd5e1;
 }
 
-.action-btn.view-report:hover {
-    background-color: #16a34a;
-    border-color: #16a34a;
+.fp-empty h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
 }
 
-.action-btn.etherscan-link {
-    background-color: #3b82f6;
-    border-color: #3b82f6;
-    color: white;
+.fp-empty p {
+  font-size: 0.875rem;
+  color: #64748b;
+  max-width: 440px;
+  margin: 0;
+  line-height: 1.6;
 }
 
-.action-btn.etherscan-link:hover {
-    background-color: #2563eb;
-    border-color: #2563eb;
+/* ── Error State ────────────────────────────────────────────── */
+.fp-error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  gap: 0.75rem;
+  text-align: center;
 }
 
-/* Transaction Status Messages */
-.transaction-pending,
-.payment-failed-info {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.625rem 1rem;
-    border-radius: 0.5rem;
-    font-size: 0.875rem;
-    font-weight: 600;
+.fp-error-state .material-symbols-outlined {
+  font-size: 3rem;
+  color: #ef4444;
 }
 
-.transaction-pending {
-    background-color: #dbeafe;
-    color: #2563eb;
+.fp-error-state p {
+  font-size: 1rem;
+  color: #64748b;
+  margin: 0;
 }
 
-.payment-failed-info {
-    background-color: #fee2e2;
-    color: #dc2626;
+/* ── Watermark ──────────────────────────────────────────────── */
+.fp-watermark {
+  position: absolute;
+  bottom: 2.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 4.5rem;
+  font-weight: 900;
+  letter-spacing: 0.15em;
+  color: rgba(0, 0, 0, 0.04);
+  user-select: none;
+  pointer-events: none;
+  white-space: nowrap;
 }
 
-.transaction-pending .material-symbols-outlined.rotating {
-    animation: rotate 1.5s linear infinite;
+/* ── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 1200px) {
+  .tl-row {
+    grid-template-columns: 180px 1fr auto;
+    gap: 1.25rem;
+  }
 }
 
-@keyframes rotate {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+@media (max-width: 1024px) {
+  .fp-main { padding: 1.75rem 1.75rem 4rem; }
+  .verif-card { grid-template-columns: 1fr; }
+  .verif-card-right { justify-self: start; }
+  .tl-row { grid-template-columns: 1fr; gap: 1rem; }
+  .tl-dates { grid-template-columns: repeat(4, 1fr); }
+  .tl-chain-card { width: 100%; }
 }
 
-/* Responsive Design */
 @media (max-width: 768px) {
-    .farm-payments-main {
-        padding: 1.5rem 1rem;
-    }
+  .fp-main { padding: 1.25rem 1rem 5rem; }
+  .fp-header { flex-direction: column; align-items: flex-start; }
+  .fp-summary-row { grid-template-columns: 1fr; }
+  .tl-dates { grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+  .bct-root { flex-wrap: wrap; gap: 0.5rem; justify-content: center; }
+  .bct-connector { display: none; }
+  .fp-watermark { font-size: 3rem; }
+}
 
-    .farm-name-title {
-        font-size: 2rem;
-    }
-
-    .cycle-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 1rem;
-    }
-
-    .cycle-summary {
-        width: 100%;
-        justify-content: space-between;
-    }
-
-    .milestone-header-row {
-        flex-direction: column;
-        gap: 0.75rem;
-    }
-
-    .milestone-status-row {
-        flex-direction: column;
-        gap: 0.75rem;
-    }
-
-    .milestone-actions-row {
-        flex-direction: column;
-    }
-
-    .action-btn {
-        width: 100%;
-        justify-content: center;
-    }
+@media (max-width: 480px) {
+  .fp-ms-table th,
+  .fp-ms-table td { padding: 0.75rem 0.875rem; font-size: 0.75rem; }
+  .fp-page-title { font-size: 1.25rem; }
+  .fp-sum-big { font-size: 1.625rem; }
 }
