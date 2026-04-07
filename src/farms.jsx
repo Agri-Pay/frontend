@@ -10,7 +10,7 @@ import { useAuth } from "./useauth";
 import { getMapboxStaticImageUrl } from "./utils/geometryHelpers";
 
 // ── Farm Card ──────────────────────────────────────────────────
-const FarmCard = ({ farm }) => {
+const FarmCard = ({ farm, onTogglePublic, role }) => {
   const navigate = useNavigate();
   const mapboxApiKey = import.meta.env.VITE_MAPBOX_API_KEY;
 
@@ -43,7 +43,22 @@ const FarmCard = ({ farm }) => {
       <div className="card-content">
         {/* Name + View button */}
         <div className="card-name-row">
-          <h3>{farm.name.toUpperCase()}</h3>
+          <div className="card-name-col">
+            <h3>{farm.name.toUpperCase()}</h3>
+            {role === "farmer" && (
+              <label className="public-toggle-wrapper" onClick={(e) => e.stopPropagation()}>
+                <span className="public-toggle-label">Public visibility</span>
+                <div className="public-toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={!!farm.is_public}
+                    onChange={(e) => onTogglePublic(farm.id, e.target.checked)}
+                  />
+                  <span className="public-slider"></span>
+                </div>
+              </label>
+            )}
+          </div>
           <button
             className="view-details-btn"
             onClick={() => navigate(`/farm/${farm.id}`)}
@@ -120,6 +135,25 @@ const FarmsPage = () => {
     fetchFarms();
   }, []);
 
+  const handleTogglePublic = async (farmId, isPublic) => {
+    try {
+      const { error } = await supabase
+        .from("farms")
+        .update({ is_public: isPublic })
+        .eq("id", farmId);
+
+      if (error) throw error;
+      
+      setFarms((prev) => 
+        prev.map((f) => f.id === farmId ? { ...f, is_public: isPublic } : f)
+      );
+      toast.success(`Farm is now ${isPublic ? "publicly visible" : "private"}`);
+    } catch (err) {
+      toast.error("Failed to update visibility");
+      console.error(err);
+    }
+  };
+
   if (loading) return <Spinner />;
 
   const filtered = farms.filter((f) =>
@@ -162,7 +196,7 @@ const FarmsPage = () => {
         {/* ── Farm Cards Grid ── */}
         <div className="farms-grid">
           {filtered.map((farm) => (
-            <FarmCard key={farm.id} farm={farm} />
+            <FarmCard key={farm.id} farm={farm} onTogglePublic={handleTogglePublic} role={role} />
           ))}
 
           {/* ── Add Farm card (farmers only) ── */}

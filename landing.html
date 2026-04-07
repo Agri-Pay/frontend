@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-tint": "#1a6d00",
+                    "surface-dim": "#d6e6d1",
+                    "secondary-fixed": "#a4f785",
+                    "error-container": "#ffdad6",
+                    "primary-container": "#4cdf20",
+                    "on-background": "#111b0e",
+                    "tertiary-fixed": "#ffd9e4",
+                    "primary-fixed": "#7aff53",
+                    "inverse-on-surface": "#f6f8f6",
+                    "on-primary-container": "#042100",
+                    "inverse-primary": "#50e325",
+                    "secondary": "#609550",
+                    "on-secondary-fixed-variant": "#125200",
+                    "on-error": "#ffffff",
+                    "tertiary-fixed-dim": "#ffb0cc",
+                    "secondary-container": "#eaf3e8",
+                    "on-primary-fixed": "#042100",
+                    "tertiary": "#8c4964",
+                    "on-error-container": "#93000a",
+                    "error": "#ba1a1a",
+                    "outline-variant": "#d6e6d1",
+                    "inverse-surface": "#111b0e",
+                    "on-surface": "#111b0e",
+                    "surface-container-lowest": "#ffffff",
+                    "on-tertiary-fixed": "#3a0620",
+                    "on-secondary-fixed": "#042100",
+                    "on-secondary": "#ffffff",
+                    "surface-variant": "#eaf3e8",
+                    "on-secondary-container": "#111b0e",
+                    "primary": "#4cdf20",
+                    "surface-container-highest": "#bccbb1",
+                    "surface-container-high": "#d6e6d1",
+                    "outline": "#609550",
+                    "secondary-fixed-dim": "#89da6c",
+                    "on-tertiary": "#ffffff",
+                    "on-surface-variant": "#3d4a37",
+                    "surface-container-low": "#f9fbf8",
+                    "surface-bright": "#f9fbf8",
+                    "on-primary": "#111b0e",
+                    "surface-container": "#eaf3e8",
+                    "tertiary-container": "#ffabc9",
+                    "primary-fixed-dim": "#50e325",
+                    "background": "#f6f8f6",
+                    "on-primary-fixed-variant": "#125200",
+                    "on-tertiary-container": "#7b3b55",
+                    "surface": "#f6f8f6"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Manrope"],
+                    "body": ["Manrope"],
+                    "label": ["Manrope"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Manrope', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .glass-panel { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(12px); }
+    </style>
+</head>
+<body class="bg-surface text-on-surface">
+<nav class="fixed top-0 w-full z-50 bg-surface/80 dark:bg-neutral-900/80 backdrop-blur-md">
+<div class="flex justify-between items-center px-8 py-4 max-w-7xl mx-auto">
+<div class="text-xl font-black tracking-tighter text-neutral-800 dark:text-neutral-100">Verdant Precision</div>
+<div class="hidden md:flex gap-8 items-center font-manrope text-base tracking-tight">
+<a class="text-lime-600 dark:text-lime-400 font-bold border-b-2 border-lime-500 pb-1" href="#">Projects</a>
+<a class="text-neutral-600 dark:text-neutral-400 hover:text-lime-500 dark:hover:text-lime-300 transition-colors" href="#">Impact</a>
+<a class="text-neutral-600 dark:text-neutral-400 hover:text-lime-500 dark:hover:text-lime-300 transition-colors" href="#">About</a>
+<a class="text-neutral-600 dark:text-neutral-400 hover:text-lime-500 dark:hover:text-lime-300 transition-colors" href="#">Login</a>
+<button class="bg-primary px-6 py-2 rounded-full font-bold text-on-primary hover:opacity-80 scale-95 transition-all">Get Started</button>
+</div>
+</div>
+</nav>
+<main>
+<!-- Hero Section -->
+<section class="relative h-screen flex items-center pt-20 overflow-hidden">
+<div class="absolute inset-0 z-0">
+<img class="w-full h-full object-cover" data-alt="expansive aerial view of lush green rolling farmland during a golden sunset with soft warm atmospheric lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAqae5F-0ReU1lqOjtuawO3p_kActd8mXOdQwu9bHXs9_7DF8nGRt58gE0Gvye1vtp0PVZu_t4lY7aXAst4NJ_z7b6gcP9HPX2JwIznl9nmQ7QKTTwVObCFhxW1I6fvMGkb0KeIKG1dG6yfN7NZGSrc0PBARSlaOaaMZesBpMxFNrsC5NwP94TqQsAwyMBOinD1hRqybghPAqFdw6rYES8-qpQikjrvHri9pPMAjLogTche2HJBPGvRJRXYrBFELcnSC6V3dXW9od0"/>
+<div class="absolute inset-0 bg-gradient-to-r from-background via-background/40 to-transparent"></div>
+</div>
+<div class="relative z-10 max-w-7xl mx-auto px-8 grid grid-cols-1 lg:grid-cols-2 gap-12">
+<div class="flex flex-col justify-center">
+<span class="inline-block px-3 py-1 bg-primary/20 text-on-primary-fixed-variant rounded-full text-xs font-bold tracking-widest mb-6 w-fit uppercase">Institutional Grade Agri-Tech</span>
+<h1 class="text-6xl font-black tracking-tight leading-[1.1] text-on-background mb-8">
+                        Invest in the Future of Agriculture. <span class="text-primary-container bg-on-background px-2">Transparent,</span> Blockchain-Backed, Regenerative.
+                    </h1>
+<p class="text-xl text-on-surface-variant max-w-lg mb-10 leading-relaxed">
+                        Scale regenerative farming through a verifiable, decentralized ledger. Secure your returns with precision satellite monitoring.
+                    </p>
+<div class="flex gap-4">
+<button class="bg-primary text-on-primary font-bold px-8 py-4 rounded-lg text-lg shadow-sm hover:opacity-90 transition-opacity">Browse Marketplace</button>
+<button class="border border-outline text-on-surface font-bold px-8 py-4 rounded-lg text-lg hover:bg-surface-variant transition-colors">Investor Kit</button>
+</div>
+</div>
+<div class="hidden lg:flex items-center justify-center">
+<div class="glass-panel p-8 rounded-xl border border-white/40 shadow-2xl relative">
+<div class="flex items-center justify-between mb-6">
+<h3 class="font-bold text-lg">Active Nodes</h3>
+<span class="material-symbols-outlined text-primary">sensors</span>
+</div>
+<img class="rounded-lg mb-4 w-full h-48 object-cover" data-alt="high-tech satellite imagery visualization of crop health using a colorful heat map overlay with data points" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD0V5dK2JkVreXnGfQleH42DRWszNf8xmcgkMFPL_hEATUssr321PeE2fuwPyS3D5GETaf8T0MnUr6bmviboTdryJk42QHukAZFZ-LYm8Bf83k00vBT5sOPXnYlBFZicr8mWMcul5yMqzG79TlL-TMqyTPMvS3_pqEM3iBT8s5ATva1EjINx4S2dbHUN0hBlzdx9iAJgHDSXLClgvKGhpqVe4lUfxkaR5isBzc1q8iqBST3wqK6fWikVwliyF-hAG4Nbx1EqoVCVdw"/>
+<div class="space-y-4">
+<div class="flex justify-between items-center text-sm">
+<span class="text-on-surface-variant">Avg NDVI Index</span>
+<span class="font-bold text-primary">0.82 High</span>
+</div>
+<div class="h-2 w-full bg-neutral-200 rounded-full">
+<div class="h-full bg-primary w-4/5 rounded-full"></div>
+</div>
+<p class="text-xs text-on-surface-variant italic">Live Feed: Verification via Sentinel-2 Satellite</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- How It Works -->
+<section class="py-32 bg-surface-container-low">
+<div class="max-w-7xl mx-auto px-8">
+<div class="text-center mb-20">
+<h2 class="text-4xl font-black tracking-tight mb-4">The Regenerative Cycle</h2>
+<p class="text-on-surface-variant">Closed-loop investment verified by Earth Observation data.</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 relative">
+<!-- Steps -->
+<div class="bg-surface p-8 rounded-xl border-l-4 border-primary">
+<span class="material-symbols-outlined text-4xl mb-4 text-primary">account_balance</span>
+<h4 class="font-bold text-xl mb-2">Investment</h4>
+<p class="text-sm text-on-surface-variant">Capital is deployed directly to regenerative soil-health projects via smart contracts.</p>
+</div>
+<div class="bg-surface p-8 rounded-xl border-l-4 border-primary">
+<span class="material-symbols-outlined text-4xl mb-4 text-primary">potted_plant</span>
+<h4 class="font-bold text-xl mb-2">Farm Milestones</h4>
+<p class="text-sm text-on-surface-variant">Farmers execute specific ESG mandates: cover-cropping, no-till, and biodiverse seeding.</p>
+</div>
+<div class="bg-surface p-8 rounded-xl border-l-4 border-primary">
+<span class="material-symbols-outlined text-4xl mb-4 text-primary">satellite_alt</span>
+<h4 class="font-bold text-xl mb-2">Verification</h4>
+<p class="text-sm text-on-surface-variant">Satellite and drone data confirm completion of milestones with zero human bias.</p>
+</div>
+<div class="bg-surface p-8 rounded-xl border-l-4 border-primary">
+<span class="material-symbols-outlined text-4xl mb-4 text-primary">payments</span>
+<h4 class="font-bold text-xl mb-2">Payment</h4>
+<p class="text-sm text-on-surface-variant">Automated payout triggered upon verification. ROI delivered to investor wallets.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Marketplace Section -->
+<section class="py-32 bg-surface">
+<div class="max-w-7xl mx-auto px-8">
+<div class="flex justify-between items-end mb-16">
+<div>
+<h2 class="text-4xl font-black tracking-tight mb-4">Active Opportunities</h2>
+<p class="text-on-surface-variant max-w-md">Vetted projects currently seeking regenerative capital infusion.</p>
+</div>
+<button class="flex items-center gap-2 text-primary font-bold hover:underline">
+                        View All Projects <span class="material-symbols-outlined">arrow_forward</span>
+</button>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+<!-- Project Card 1 -->
+<div class="bg-surface-container-low rounded-xl overflow-hidden flex flex-col md:flex-row transition-transform hover:-translate-y-1">
+<div class="md:w-2/5 relative h-64 md:h-auto">
+<img class="w-full h-full object-cover" data-alt="close-up of healthy organic soybean plants growing in rows on a modern sustainable farm with bright sunlight" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA4Dw3TK2j1Nlj1PnMMKumb_P_j1jzApoOiau9iUaY1ymdNAGzwnYpyqKgc90FlNNK8eyy_QpgTiOamckQaZilfb4uZza-dTU2jKjnfUGdibXcujdFaOFx8ShgunFFasUsNIyKoBECxm96eIg9fRYTHw_gp-gipltWRxTQo4MTvim95Y_Pp3xpXWAeydCYOqoiSar6y53FMyroeicq1wfsrODlQkXw1qZVd7tpTgULVl-GAJcOfVBXvmeQaWu63uYnIgbeGZsDiox8"/>
+<div class="absolute top-4 left-4 bg-primary px-3 py-1 rounded-full text-xs font-bold">ACTIVE</div>
+</div>
+<div class="md:w-3/5 p-8 flex flex-col">
+<div class="flex justify-between items-start mb-4">
+<div>
+<h3 class="text-xl font-black">Verde Valley - Soybeans</h3>
+<p class="text-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-xs">location_on</span> Matto Grosso, Brazil
+                                    </p>
+</div>
+<div class="bg-secondary-container px-3 py-1 rounded text-[10px] font-bold text-on-secondary-container">ESG 94/100</div>
+</div>
+<div class="grid grid-cols-2 gap-6 mb-8">
+<div>
+<p class="text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">Current Milestone</p>
+<p class="font-bold text-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-primary text-sm">potted_plant</span> Seeding
+                                    </p>
+</div>
+<div>
+<p class="text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">Target ROI</p>
+<p class="font-bold text-sm text-primary">12.4% APY</p>
+</div>
+</div>
+<div class="mb-8">
+<div class="flex justify-between text-xs mb-2">
+<span class="font-bold">$420,000 funded</span>
+<span class="text-on-surface-variant">Goal: $500k</span>
+</div>
+<div class="h-1.5 w-full bg-neutral-200 rounded-full">
+<div class="h-full bg-primary w-[84%] rounded-full"></div>
+</div>
+</div>
+<div class="mt-auto flex gap-2">
+<button class="flex-1 bg-on-background text-white font-bold py-3 rounded-lg text-sm hover:opacity-90">Invest Now</button>
+<button class="px-4 py-3 border border-outline rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-sm">bookmark</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Project Card 2 -->
+<div class="bg-surface-container-low rounded-xl overflow-hidden flex flex-col md:flex-row transition-transform hover:-translate-y-1">
+<div class="md:w-2/5 relative h-64 md:h-auto">
+<img class="w-full h-full object-cover" data-alt="golden corn field at dawn with morning dew on leaves and soft hazy sunlight filtering through stalks" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAyekvt7U0vju1woc2sUXyZ2FQrUZJ27gfCMam6xdCA0VddYu_2Zo2cmCgw73_14FMgF7LoyFquO6WfRPaNmU4nBKWNjFxN8mQglS1CSNOYwcDv2V7-Ezo1-_JOSUZzcnBzFpKJ93mjYdfocgXH8T_8fgsOs7LT5sT8kVqSpGHeDstUJJRcxouCrQgCgmsFTTVc89gKQ0dSkdneSceigC6mgPJW4o6NU3pdikBOG4Yhu6gQWYwTksx0FY5OZfZherCvZga4e_9CYls"/>
+<div class="absolute top-4 left-4 bg-primary px-3 py-1 rounded-full text-xs font-bold">ACTIVE</div>
+</div>
+<div class="md:w-3/5 p-8 flex flex-col">
+<div class="flex justify-between items-start mb-4">
+<div>
+<h3 class="text-xl font-black">Sunnydale - Corn</h3>
+<p class="text-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-xs">location_on</span> Iowa, USA
+                                    </p>
+</div>
+<div class="bg-secondary-container px-3 py-1 rounded text-[10px] font-bold text-on-secondary-container">ESG 88/100</div>
+</div>
+<div class="grid grid-cols-2 gap-6 mb-8">
+<div>
+<p class="text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">Current Milestone</p>
+<p class="font-bold text-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-primary text-sm">agriculture</span> Land Prep
+                                    </p>
+</div>
+<div>
+<p class="text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">Target ROI</p>
+<p class="font-bold text-sm text-primary">10.8% APY</p>
+</div>
+</div>
+<div class="mb-8">
+<div class="flex justify-between text-xs mb-2">
+<span class="font-bold">$125,000 funded</span>
+<span class="text-on-surface-variant">Goal: $300k</span>
+</div>
+<div class="h-1.5 w-full bg-neutral-200 rounded-full">
+<div class="h-full bg-primary w-[41%] rounded-full"></div>
+</div>
+</div>
+<div class="mt-auto flex gap-2">
+<button class="flex-1 bg-on-background text-white font-bold py-3 rounded-lg text-sm hover:opacity-90">Invest Now</button>
+<button class="px-4 py-3 border border-outline rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-sm">bookmark</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Data Integrity Bento -->
+<section class="py-32 bg-surface-container-high">
+<div class="max-w-7xl mx-auto px-8">
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<div class="md:col-span-2 bg-surface p-12 rounded-2xl flex flex-col justify-center">
+<h2 class="text-4xl font-black mb-6">Unrivaled Precision.</h2>
+<p class="text-lg text-on-surface-variant mb-8 max-w-lg">Our proprietary tech stack combines IoT soil sensors with multi-spectral satellite analysis to provide real-time proof of impact. No greenwashing. Just data.</p>
+<div class="flex gap-12">
+<div>
+<h5 class="text-3xl font-black text-primary">12.5k</h5>
+<p class="text-xs font-bold uppercase tracking-widest text-on-surface-variant">Hectares Managed</p>
+</div>
+<div>
+<h5 class="text-3xl font-black text-primary">100%</h5>
+<p class="text-xs font-bold uppercase tracking-widest text-on-surface-variant">On-Chain Audit</p>
+</div>
+<div>
+<h5 class="text-3xl font-black text-primary">$42M</h5>
+<p class="text-xs font-bold uppercase tracking-widest text-on-surface-variant">Capital Deployed</p>
+</div>
+</div>
+</div>
+<div class="bg-on-background p-8 rounded-2xl text-white flex flex-col items-center justify-center text-center">
+<div class="w-24 h-24 bg-primary/20 rounded-full flex items-center justify-center mb-6">
+<span class="material-symbols-outlined text-primary text-5xl">verified</span>
+</div>
+<h4 class="text-xl font-bold mb-2">Verified Proof of State</h4>
+<p class="text-neutral-400 text-sm">Every payment cycle requires a cryptographic proof of milestone achievement verified by independent geospatial oracles.</p>
+</div>
+</div>
+</div>
+</section>
+</main>
+<footer class="bg-neutral-100 dark:bg-neutral-950 w-full border-t border-neutral-200 dark:border-neutral-800">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8 px-8 py-12 max-w-7xl mx-auto">
+<div>
+<div class="text-lg font-black text-neutral-800 dark:text-neutral-100 mb-4 uppercase tracking-tighter">Verdant Precision</div>
+<p class="text-sm font-manrope text-neutral-500 dark:text-neutral-400 max-w-xs mb-6">
+                    Bridging institutional capital and sustainable agriculture through the power of precision data and decentralized trust.
+                </p>
+<div class="text-sm font-manrope text-neutral-500 dark:text-neutral-400">
+                    © 2024 Verdant Precision. Regenerative Ledger Tech.
+                </div>
+</div>
+<div class="grid grid-cols-2 gap-8">
+<div>
+<h5 class="font-bold text-neutral-800 dark:text-neutral-100 mb-4 text-sm">Resources</h5>
+<ul class="space-y-2 text-sm font-manrope text-neutral-500 dark:text-neutral-400">
+<li><a class="hover:underline hover:text-lime-500" href="#">Privacy Policy</a></li>
+<li><a class="hover:underline hover:text-lime-500" href="#">Terms of Service</a></li>
+<li><a class="hover:underline hover:text-lime-500" href="#">Investor FAQ</a></li>
+</ul>
+</div>
+<div>
+<h5 class="font-bold text-neutral-800 dark:text-neutral-100 mb-4 text-sm">Impact</h5>
+<ul class="space-y-2 text-sm font-manrope text-neutral-500 dark:text-neutral-400">
+<li><a class="hover:underline hover:text-lime-500" href="#">Impact Report</a></li>
+<li><a class="hover:underline hover:text-lime-500" href="#">Regenerative Whitepaper</a></li>
+<li><a class="hover:underline hover:text-lime-500" href="#">Farm Network</a></li>
+</ul>
+</div>
+</div>
+</div>
+</footer>
+</body></html>

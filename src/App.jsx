@@ -18,6 +18,9 @@ import FarmReportsPage from "./farmreports";
 import PaymentsPage from "./payments";
 import FarmPaymentsPage from "./farmpayments";
 import SettingsPage from "./settings";
+import LandingPage from "./LandingPage";
+import PublicFarmInsights from "./PublicFarmInsights";
+import ContactPage from "./ContactPage";
 
 function App() {
   return (
@@ -99,8 +102,10 @@ function App() {
             }
           />
 
-          {/* Redirect base route to dashboard or login */}
-          <Route path="/" element={<LoginPage />} />
+          {/* Public Landing Page */}
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/public-farm/:farmId" element={<PublicFarmInsights />} />
+          <Route path="/contact" element={<ContactPage />} />
           <Route
             path="/farm/:farmId"
             element={

@@ -4,8 +4,8 @@
     display: flex;
     flex-direction: column;
     min-height: 100vh;
-    background-color: #f8fafc;
-    font-family: "Work Sans", sans-serif;
+    background-color: #f6f8f6;
+    font-family: 'Manrope', system-ui, sans-serif;
 }
 
 /* --- Main Content --- */
@@ -19,13 +19,13 @@
 
 .login-card {
     width: 100%;
-    max-width: 28rem;
+    max-width: 26rem;
     margin: 0 auto;
     background-color: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 1.5rem;
-    padding: 3rem;
-    box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.05);
+    border: none;
+    border-radius: 20px;
+    padding: 3.5rem 3rem;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.04);
 }
 
 /* --- THE FIX IS HERE --- */
@@ -37,14 +37,11 @@
 }
 
 .card-title {
-    font-size: 2.25rem;
-    /* Adjusted font size for single line */
+    font-size: 1.875rem;
     font-weight: 800;
-    color: #1e293b;
+    letter-spacing: -0.04em;
+    color: #111b0e;
     margin: 0;
-    line-height: 1.2;
-    /* justify-content: center; */
-    /* align-items: center; */
 }
 
 .card-subtitle {
@@ -87,18 +84,18 @@
     width: 100%;
     padding: 1rem 1rem 1rem 3rem;
     box-sizing: border-box;
-    background-color: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 0.75rem;
-    transition: border-color 0.2s, box-shadow 0.2s;
-    color: #1e293b;
+    background-color: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    transition: all 0.2s;
+    color: #111b0e;
     font-size: 1rem;
 }
 
 .form-input:focus {
     outline: none;
     border-color: #4cdf20;
-    box-shadow: 0 0 0 3px rgba(76, 223, 32, 0.2);
+    box-shadow: 0 0 0 3px rgba(76, 223, 32, 0.15);
 }
 
 .form-input::placeholder {
@@ -153,19 +150,20 @@
 
 .submit-btn {
     width: 100%;
-    padding: 0.9rem 1rem;
+    padding: 1rem;
     border: none;
-    border-radius: 0.75rem;
+    border-radius: 999px;
     font-size: 1rem;
     font-weight: 700;
-    color: #1e293b;
-    background-color: #4cdf20;
+    color: #ffffff;
+    background-color: #111b0e;
     cursor: pointer;
-    transition: opacity 0.2s;
+    transition: all 0.2s;
 }
 
 .submit-btn:hover {
-    opacity: 0.9;
+    background-color: #4cdf20;
+    color: #111b0e;
 }
 
 .submit-btn:disabled {

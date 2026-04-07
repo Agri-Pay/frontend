@@ -1,0 +1,357 @@
+.pub-insights-page {
+  font-family: 'Manrope', system-ui, sans-serif;
+  background-color: #f6f8f6;
+  color: #111b0e;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.pub-nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background-color: rgba(246, 248, 246, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.pub-nav-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 1.5rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pub-logo {
+  font-size: 1.5rem;
+  font-weight: 900;
+  cursor: pointer;
+  letter-spacing: -0.05em;
+}
+
+.pub-btn-primary {
+  background-color: #111b0e;
+  color: #ffffff;
+  padding: 0.75rem 1.5rem;
+  border-radius: 999px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.pub-btn-primary:hover { background-color: #4cdf20; color: #111b0e; }
+
+.pub-main {
+  flex: 1;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 4rem 2rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.pub-farm-header {
+  margin-bottom: 3rem;
+}
+
+.pub-badge {
+  display: inline-block;
+  background-color: rgba(76, 223, 32, 0.15);
+  color: #3d4a37;
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  margin-bottom: 1rem;
+}
+
+.pub-title {
+  font-size: 3rem;
+  font-weight: 900;
+  margin: 0 0 0.5rem 0;
+  letter-spacing: -0.03em;
+}
+
+.pub-location {
+  display: flex;
+  align-items: center;
+  color: #609550;
+  font-weight: 600;
+  margin: 0 0 2rem 0;
+  gap: 0.5rem;
+}
+
+.pub-header-metrics {
+  display: flex;
+  gap: 3rem;
+  padding: 1.5rem;
+  background-color: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+  width: fit-content;
+}
+
+.pub-h-metric p {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: #6b7280;
+  margin: 0 0 0.25rem 0;
+  font-weight: 700;
+}
+.pub-h-metric h4 {
+  font-size: 1.25rem;
+  margin: 0;
+  font-weight: 800;
+}
+
+.pub-bento-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+}
+@media(min-width: 1024px) {
+  .pub-bento-grid { grid-template-columns: 2fr 1fr; }
+}
+
+.pub-bento-card {
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 2.5rem;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.03);
+}
+
+.pub-chart-card {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+}
+
+.pub-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.pub-live-tag {
+  background-color: #eaf3e8;
+  color: #609550;
+  font-size: 0.7rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 800;
+}
+
+.pub-card-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.pub-card-desc {
+  color: #6b7280;
+  font-size: 0.9rem;
+  margin: 0 0 2rem 0;
+}
+
+.pub-chart-wrap {
+  height: 350px;
+  position: relative;
+  width: 100%;
+}
+
+.pub-empty-state {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f9fbf8;
+  border-radius: 12px;
+  color: #9ca3af;
+  font-style: italic;
+  font-weight: 600;
+}
+
+.pub-ml-card, .pub-progress-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.pub-ml-content, .pub-timeline {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.pub-empty-ml {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: #6b7280;
+}
+.pub-empty-ml .material-symbols-outlined {
+  font-size: 3rem;
+  color: #d1d5db;
+  margin-bottom: 1rem;
+}
+.pub-empty-ml h4 { margin: 0 0 0.5rem 0; color: #374151; font-weight: 700; }
+.pub-empty-ml p { font-size: 0.85rem; margin: 0; }
+
+.pub-ml-result-box {
+  background-color: #f9fbf8;
+  border: 1px solid #eaf3e8;
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.pub-ml-header-flex {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.pub-verdict.active {
+  color: #14532d;
+  background-color: #dcfce7;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.pub-conf {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #111b0e;
+}
+
+.pub-ml-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.pub-ml-m-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.pub-ml-m-key {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  color: #6b7280;
+  font-weight: 700;
+}
+.pub-ml-m-val {
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: #4cdf20;
+}
+
+.pub-ml-rec {
+  background-color: #ffffff;
+  padding: 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  margin: 0;
+  border-left: 3px solid #111b0e;
+}
+
+.pub-milestone-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+.pub-m-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+.pub-m-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: #e5e7eb;
+  margin-top: 5px;
+  flex-shrink: 0;
+}
+.pub-m-dot.verified {
+  background-color: #4cdf20;
+  box-shadow: 0 0 0 4px rgba(76, 223, 32, 0.2);
+}
+.pub-m-text p {
+  margin: 0 0 0.25rem 0;
+  font-weight: 800;
+  font-size: 0.95rem;
+}
+.pub-m-text span {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.pub-footer-cta {
+  background-color: #111b0e;
+  color: #ffffff;
+  text-align: center;
+  padding: 6rem 2rem;
+  margin-top: auto;
+}
+.pub-footer-cta h2 {
+  font-size: 2.5rem;
+  font-weight: 900;
+  margin: 0 0 1rem 0;
+}
+.pub-footer-cta p {
+  color: #9ca3af;
+  max-width: 600px;
+  margin: 0 auto 2.5rem auto;
+  line-height: 1.6;
+}
+.pub-btn-primary.large {
+  padding: 1.25rem 3rem;
+  font-size: 1.1rem;
+}
+
+.pub-loading-screen, .pub-error-screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: #f6f8f6;
+  font-family: 'Manrope', system-ui, sans-serif;
+  color: #111b0e;
+}
+
+.pub-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(76, 223, 32, 0.2);
+  border-top: 4px solid #4cdf20;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1.5rem;
+}
+
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+.pub-btn {
+  background-color: #111b0e;
+  color: #ffffff;
+  padding: 0.75rem 1.5rem;
+  border-radius: 999px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  margin-top: 1.5rem;
+}

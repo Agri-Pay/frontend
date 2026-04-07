@@ -3,7 +3,7 @@
     flex-direction: column;
     min-height: 100vh;
     background-color: #f6f8f6;
-    font-family: "Work Sans", sans-serif;
+    font-family: 'Manrope', system-ui, sans-serif;
 }
 
 .main-content {
@@ -19,10 +19,10 @@
     max-width: 26rem;
     margin: 0 auto;
     background-color: #ffffff;
-    border: 1px solid #e5e7eb;
-    border-radius: 1rem;
-    padding: 2.5rem;
-    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.05), 0 8px 10px -6px rgb(0 0 0 / 0.05);
+    border: none;
+    border-radius: 20px;
+    padding: 3.5rem 3rem;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.04);
 }
 
 .card-header {
@@ -32,8 +32,9 @@
 
 .card-title {
     font-size: 1.875rem;
-    font-weight: 700;
-    color: #111827;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    color: #111b0e;
     margin: 0;
 }
 
@@ -70,18 +71,18 @@
     width: 100%;
     padding: 0.9rem 1rem 0.9rem 2.75rem;
     box-sizing: border-box;
-    background-color: #f9fafb;
-    border: 1px solid #d1d5db;
-    border-radius: 0.5rem;
+    background-color: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
     transition: border-color 0.2s, box-shadow 0.2s;
-    color: #111827;
+    color: #111b0e;
     font-size: 1rem;
 }
 
 .form-input:focus {
     outline: none;
     border-color: #4cdf20;
-    box-shadow: 0 0 0 3px rgba(76, 223, 32, 0.2);
+    box-shadow: 0 0 0 3px rgba(76, 223, 32, 0.15);
 }
 
 .input-label {
@@ -96,10 +97,10 @@
     width: 100%;
     padding: 0.9rem 1rem;
     box-sizing: border-box;
-    background-color: #f9fafb;
-    border: 1px solid #d1d5db;
-    border-radius: 0.5rem;
-    color: #111827;
+    background-color: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    color: #111b0e;
     font-size: 1rem;
     cursor: pointer;
     -webkit-appearance: none;
@@ -114,7 +115,7 @@
 .form-select:focus {
     outline: none;
     border-color: #4cdf20;
-    box-shadow: 0 0 0 3px rgba(76, 223, 32, 0.2);
+    box-shadow: 0 0 0 3px rgba(76, 223, 32, 0.15);
 }
 
 /* --- Messages --- */
@@ -143,19 +144,20 @@
 
 .submit-btn {
     width: 100%;
-    padding: 0.8rem 1rem;
+    padding: 1rem;
     border: none;
-    border-radius: 0.5rem;
+    border-radius: 999px;
     font-size: 1rem;
     font-weight: 700;
-    color: #111827;
-    background-color: #4cdf20;
+    color: #ffffff;
+    background-color: #111b0e;
     cursor: pointer;
-    transition: opacity 0.2s;
+    transition: all 0.2s;
 }
 
 .submit-btn:hover {
-    opacity: 0.9;
+    background-color: #4cdf20;
+    color: #111b0e;
 }
 
 .submit-btn:disabled {

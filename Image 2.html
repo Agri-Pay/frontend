@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary": "#ffffff",
+                        "primary-fixed": "#7aff53",
+                        "error-container": "#ffdad6",
+                        "surface-container": "#eaf3e8",
+                        "surface-tint": "#1a6d00",
+                        "secondary-fixed-dim": "#89da6c",
+                        "on-primary-fixed-variant": "#125200",
+                        "inverse-on-surface": "#f6f8f6",
+                        "on-secondary-fixed": "#042100",
+                        "on-error": "#ffffff",
+                        "on-primary-fixed": "#042100",
+                        "surface-variant": "#eaf3e8",
+                        "on-background": "#111b0e",
+                        "on-tertiary-fixed-variant": "#70324c",
+                        "on-primary-container": "#042100",
+                        "tertiary": "#8c4964",
+                        "inverse-primary": "#50e325",
+                        "tertiary-fixed-dim": "#ffb0cc",
+                        "tertiary-fixed": "#ffd9e4",
+                        "inverse-surface": "#111b0e",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-bright": "#f9fbf8",
+                        "outline": "#609550",
+                        "on-secondary-container": "#111b0e",
+                        "on-error-container": "#93000a",
+                        "primary": "#4cdf20",
+                        "background": "#f6f8f6",
+                        "on-tertiary-container": "#7b3b55",
+                        "on-tertiary": "#ffffff",
+                        "on-primary": "#111b0e",
+                        "surface-dim": "#d6e6d1",
+                        "on-secondary-fixed-variant": "#125200",
+                        "tertiary-container": "#ffabc9",
+                        "primary-fixed-dim": "#50e325",
+                        "surface-container-low": "#f9fbf8",
+                        "surface": "#f6f8f6",
+                        "secondary": "#609550",
+                        "primary-container": "#4cdf20",
+                        "on-surface-variant": "#3d4a37",
+                        "error": "#ba1a1a",
+                        "secondary-container": "#eaf3e8",
+                        "outline-variant": "#d6e6d1",
+                        "surface-container-highest": "#bccbb1",
+                        "surface-container-high": "#d6e6d1",
+                        "secondary-fixed": "#a4f785",
+                        "on-tertiary-fixed": "#3a0620",
+                        "on-surface": "#111b0e"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Manrope"],
+                        "body": ["Manrope"],
+                        "label": ["Manrope"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Manrope', sans-serif; }
+    </style>
+</head>
+<body class="bg-surface text-on-surface">
+<!-- SideNavBar Component -->
+<aside class="h-screen w-64 fixed left-0 top-0 bg-[#f6f8f6] dark:bg-[#0d140b] flex flex-col p-6 border-r-0 z-50">
+<div class="mb-10 flex flex-col">
+<span class="text-xl font-black text-[#111b0e] dark:text-[#f9fbf8] tracking-tight">AgriPay</span>
+<span class="text-xs font-bold text-secondary uppercase tracking-widest">Regenerative Ledger</span>
+</div>
+<nav class="flex-1 space-y-2">
+<a class="flex items-center gap-3 px-4 py-3 text-[#5c635a] dark:text-[#a3aba0] hover:bg-[#f1f3f1] dark:hover:bg-[#1a2617] rounded-lg transition-colors group" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-medium">Overview</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 bg-[#4cdf20]/20 text-[#111b0e] dark:text-[#4cdf20] rounded-lg font-bold scale-95 active:scale-90 transition-all" href="#">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+<span class="font-bold">Payments</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-[#5c635a] dark:text-[#a3aba0] hover:bg-[#f1f3f1] dark:hover:bg-[#1a2617] rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="font-medium">Contracts</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-[#5c635a] dark:text-[#a3aba0] hover:bg-[#f1f3f1] dark:hover:bg-[#1a2617] rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined">account_balance</span>
+<span class="font-medium">Wallet</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-[#5c635a] dark:text-[#a3aba0] hover:bg-[#f1f3f1] dark:hover:bg-[#1a2617] rounded-lg transition-colors mt-auto" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-medium">Settings</span>
+</a>
+</nav>
+<div class="mt-auto pt-6">
+<button class="w-full py-3 bg-primary text-on-primary font-black rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-lg">add</span>
+                New Transaction
+            </button>
+</div>
+</aside>
+<!-- Main Content Wrapper -->
+<div class="pl-64">
+<!-- TopAppBar Component -->
+<header class="flex justify-between items-center h-20 pl-8 pr-8 w-full bg-transparent backdrop-blur-md sticky top-0 z-40">
+<div class="flex items-center gap-6">
+<a class="text-[#5c635a] dark:text-[#a3aba0] hover:text-[#4cdf20] transition-colors font-bold" href="#">Network Status</a>
+<a class="text-[#5c635a] dark:text-[#a3aba0] hover:text-[#4cdf20] transition-colors font-bold" href="#">Help</a>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative">
+<input class="bg-surface-container border-none rounded-full py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-[#4cdf20]/50 w-64" placeholder="Search transactions..." type="text"/>
+<span class="material-symbols-outlined absolute left-3 top-2 text-outline">search</span>
+</div>
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<img alt="Farmer Profile" class="w-10 h-10 rounded-full border-2 border-primary" data-alt="Close-up portrait of a weathered, smiling farmer wearing a denim cap in a sun-drenched field with golden hour lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCQan2bVMRgPu-pXAlKTUKJ7xCisCdBpdwX8rtESx4aP6pPiEzLDUM1QyM3vLarnF_J5owHUdF3-6Llr6FWfxcTCUgW9gE4QOSKTqSg-bEOapl1LSpwN3lBo72JjKYEl4auII480V1VY75qh5Hnnrn5OrMsTKTpGvD2FDLvdy5my16WI-NTxlYxiwNbjF4Rnoj_IscOjUPWEQnVOwjxrOlN-Dx__GTk5OBjdvem24X1TVDv_cQq37aFDc_mgmlKijJzupG-4JXLcJQ"/>
+</div>
+</header>
+<main class="p-12 space-y-12">
+<!-- Header Section -->
+<section>
+<h1 class="text-[2.25rem] font-black tracking-tight text-on-background leading-none">Payment Tracking</h1>
+<p class="text-on-surface-variant mt-2 font-medium">Contract #C-1204B | <span class="text-primary font-bold">Soybean - Summer 2024</span></p>
+</section>
+<!-- Summary Bento Grid -->
+<section class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<div class="bg-surface-container-low p-6 rounded-xl flex flex-col justify-between">
+<span class="text-sm font-bold text-secondary uppercase tracking-widest">Total Amount Paid</span>
+<div class="mt-4">
+<span class="text-4xl font-black text-on-background">$12,500</span>
+<div class="mt-2 h-1.5 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[71%] rounded-full"></div>
+</div>
+<span class="text-xs text-on-surface-variant mt-2 block">71% of total contract value</span>
+</div>
+</div>
+<div class="bg-surface-container-low p-6 rounded-xl flex flex-col justify-between">
+<span class="text-sm font-bold text-secondary uppercase tracking-widest">Pending</span>
+<div class="mt-4">
+<span class="text-4xl font-black text-on-background">$5,000</span>
+<div class="flex items-center gap-2 mt-2">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span>
+<span class="text-xs text-on-surface-variant font-medium">Awaiting Milestone Completion</span>
+</div>
+</div>
+</div>
+<div class="bg-surface-container-low p-6 rounded-xl border-l-4 border-primary shadow-sm">
+<span class="text-sm font-bold text-primary uppercase tracking-widest">Next Milestone</span>
+<div class="mt-4 flex items-start justify-between">
+<div>
+<span class="text-2xl font-black text-on-background block">Harvesting</span>
+<span class="text-sm text-on-surface-variant">Estimated: Sept 15, 2024</span>
+</div>
+<span class="material-symbols-outlined text-primary text-3xl">agriculture</span>
+</div>
+</div>
+</section>
+<!-- Current Active Payment Section -->
+<section class="space-y-6">
+<h2 class="text-xl font-black text-on-background">Verification in Progress</h2>
+<div class="bg-surface-container-low p-8 rounded-xl relative overflow-hidden">
+<div class="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16"></div>
+<div class="flex flex-col md:flex-row justify-between gap-8 relative z-10">
+<div class="max-w-md">
+<div class="flex items-center gap-3 mb-2">
+<span class="bg-primary/20 text-primary px-3 py-1 rounded-full text-xs font-black">ACTIVE</span>
+<span class="text-on-surface-variant font-bold">Milestone: Flowering Stage</span>
+</div>
+<h3 class="text-2xl font-black text-on-background mb-4">$3,500.00</h3>
+<p class="text-sm text-on-surface-variant leading-relaxed">
+                                Satellite verification has confirmed crop health across 400 hectares. Contract smart agent is currently performing technical auditing before final release.
+                            </p>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-center mb-8 relative">
+<div class="absolute h-1 bg-surface-container w-full top-1/2 -translate-y-1/2 left-0 z-0"></div>
+<div class="absolute h-1 bg-primary w-1/2 top-1/2 -translate-y-1/2 left-0 z-0"></div>
+<div class="relative z-10 flex flex-col items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-on-primary">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<span class="text-[10px] font-bold uppercase tracking-tighter">Claim</span>
+</div>
+<div class="relative z-10 flex flex-col items-center gap-2">
+<div class="w-10 h-10 rounded-full bg-primary border-4 border-surface-container-low flex items-center justify-center text-on-primary shadow-sm">
+<span class="material-symbols-outlined text-sm animate-pulse">sync</span>
+</div>
+<span class="text-[10px] font-bold uppercase tracking-tighter text-primary">Verifying</span>
+</div>
+<div class="relative z-10 flex flex-col items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-outline">
+<span class="material-symbols-outlined text-sm">link</span>
+</div>
+<span class="text-[10px] font-bold uppercase tracking-tighter text-outline">Ledger</span>
+</div>
+<div class="relative z-10 flex flex-col items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-outline">
+<span class="material-symbols-outlined text-sm">account_balance_wallet</span>
+</div>
+<span class="text-[10px] font-bold uppercase tracking-tighter text-outline">Payout</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Blockchain History Timeline -->
+<section class="space-y-6">
+<div class="flex items-center justify-between">
+<h2 class="text-xl font-black text-on-background">Blockchain Timeline</h2>
+<button class="text-sm font-bold text-primary flex items-center gap-1 hover:underline">
+                        View Public Ledger
+                        <span class="material-symbols-outlined text-sm">open_in_new</span>
+</button>
+</div>
+<div class="space-y-4">
+<!-- History Card 1 -->
+<div class="bg-surface-container-low p-6 rounded-xl group hover:bg-surface-container transition-all">
+<div class="flex flex-col lg:flex-row gap-8">
+<div class="lg:w-1/4">
+<span class="bg-surface-container text-outline px-3 py-1 rounded-full text-[10px] font-black uppercase">COMPLETED</span>
+<h4 class="text-lg font-black text-on-background mt-2">Soil Testing</h4>
+<span class="text-sm font-medium text-on-surface-variant">Released Aug 14, 2024</span>
+<div class="mt-4 text-primary font-black text-xl">$4,000.00</div>
+</div>
+<div class="flex-1 grid grid-cols-2 md:grid-cols-4 gap-4 items-center">
+<div class="flex flex-col">
+<span class="text-[10px] font-bold text-secondary uppercase tracking-widest">Farmer Claim</span>
+<span class="text-sm font-medium">Aug 10</span>
+</div>
+<div class="flex flex-col">
+<span class="text-[10px] font-bold text-secondary uppercase tracking-widest">Technical Verification</span>
+<span class="text-sm font-medium">Aug 12</span>
+</div>
+<div class="flex flex-col">
+<span class="text-[10px] font-bold text-secondary uppercase tracking-widest">Blockchain Initiation</span>
+<span class="text-sm font-medium">Aug 13</span>
+</div>
+<div class="flex flex-col">
+<span class="text-[10px] font-bold text-secondary uppercase tracking-widest">Funds Received</span>
+<span class="text-sm font-medium">Aug 14</span>
+</div>
+</div>
+<div class="lg:w-1/4 bg-surface-container p-4 rounded-lg flex flex-col justify-center gap-2">
+<div class="flex items-center justify-between">
+<span class="text-[10px] font-bold text-outline uppercase">Network</span>
+<span class="text-xs font-bold">Polygon</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-[10px] font-bold text-outline uppercase">Hash</span>
+<span class="text-xs font-mono text-primary truncate ml-4">0x1a2b...c3d4</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-[10px] font-bold text-outline uppercase">Wallet</span>
+<span class="text-xs font-mono truncate ml-4">0x...8e9f</span>
+</div>
+</div>
+</div>
+</div>
+<!-- History Card 2 -->
+<div class="bg-surface-container-low p-6 rounded-xl group hover:bg-surface-container transition-all opacity-80">
+<div class="flex flex-col lg:flex-row gap-8">
+<div class="lg:w-1/4">
+<span class="bg-surface-container text-outline px-3 py-1 rounded-full text-[10px] font-black uppercase">COMPLETED</span>
+<h4 class="text-lg font-black text-on-background mt-2">Seed Acquisition</h4>
+<span class="text-sm font-medium text-on-surface-variant">Released July 02, 2024</span>
+<div class="mt-4 text-primary font-black text-xl">$5,000.00</div>
+</div>
+<div class="flex-1 grid grid-cols-2 md:grid-cols-4 gap-4 items-center">
+<div class="flex flex-col">
+<span class="text-[10px] font-bold text-secondary uppercase tracking-widest">Farmer Claim</span>
+<span class="text-sm font-medium">Jun 28</span>
+</div>
+<div class="flex flex-col">
+<span class="text-[10px] font-bold text-secondary uppercase tracking-widest">Technical Verification</span>
+<span class="text-sm font-medium">Jun 30</span>
+</div>
+<div class="flex flex-col">
+<span class="text-[10px] font-bold text-secondary uppercase tracking-widest">Blockchain Initiation</span>
+<span class="text-sm font-medium">Jul 01</span>
+</div>
+<div class="flex flex-col">
+<span class="text-[10px] font-bold text-secondary uppercase tracking-widest">Funds Received</span>
+<span class="text-sm font-medium">Jul 02</span>
+</div>
+</div>
+<div class="lg:w-1/4 bg-surface-container p-4 rounded-lg flex flex-col justify-center gap-2">
+<div class="flex items-center justify-between">
+<span class="text-[10px] font-bold text-outline uppercase">Network</span>
+<span class="text-xs font-bold">Polygon</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-[10px] font-bold text-outline uppercase">Hash</span>
+<span class="text-xs font-mono text-primary truncate ml-4">0x7f4e...9a21</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-[10px] font-bold text-outline uppercase">Wallet</span>
+<span class="text-xs font-mono truncate ml-4">0x...8e9f</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Aesthetic Branding Texture -->
+<div class="p-12 opacity-10">
+<div class="border-t border-secondary pt-8 flex justify-between items-center">
+<span class="text-8xl font-black tracking-tighter select-none">AGRIPAY</span>
+<span class="material-symbols-outlined text-6xl">spa</span>
+</div>
+</div>
+</div>
+</body></html>
