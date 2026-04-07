@@ -191,8 +191,10 @@ body {
 .hero-title-highlight {
   color: #4cdf20;
   background-color: rgba(17, 27, 14, 0.9);
-  padding: 0 0.5rem;
+  padding: 0.1rem 1rem;
+  border-radius: 999px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  display: inline-block;
 }
 
 .hero-subtitle {
