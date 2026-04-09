@@ -80,7 +80,7 @@ function App() {
           <Route
             path="/admin-dashboard"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={["admin"]}>
                 <AdminDashboardPage />
               </ProtectedRoute>
             }
@@ -110,6 +110,14 @@ function App() {
             path="/farm/:farmId"
             element={
               <ProtectedRoute>
+                <FarmDetailsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/farms/:farmId"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
                 <FarmDetailsPage />
               </ProtectedRoute>
             }
