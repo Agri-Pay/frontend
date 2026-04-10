@@ -9,6 +9,7 @@ import { useAuth } from "./useauth";
 import { Link, useNavigate } from "react-router-dom";
 import Spinner from "./spinner";
 import { MILESTONE_STATUS, isVerifiedStatus, getStatusDisplay } from "./utils/statusHelpers";
+import { WalletInfoWidget } from "./WalletInfoWidget";
 
 const AdminDashboardPage = () => {
   const [metrics, setMetrics] = useState({
@@ -75,6 +76,7 @@ const AdminDashboardPage = () => {
             </p>
           </div>
           <div className="header-actions">
+            <WalletInfoWidget />
             <Notifications />
             <div className="user-menu">
               <div className="user-avatar">

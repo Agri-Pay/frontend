@@ -7,8 +7,12 @@ import "./index.css";
 import "leaflet/dist/leaflet.css";
 import "leaflet-draw/dist/leaflet.draw.css";
 
+import { Web3Provider } from "./Web3Context.jsx";
+
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <App />
+    <Web3Provider>
+      <App />
+    </Web3Provider>
   </React.StrictMode>
 );

@@ -8,6 +8,8 @@ import { useAuth } from "./useauth";
 import { toast } from "react-hot-toast";
 import "./farmpayments.css";
 import { MILESTONE_STATUS, isVerifiedStatus, getStatusDisplay } from "./utils/statusHelpers";
+import { FundMilestoneButton } from "./FundMilestoneButton";
+import { WalletInfoWidget } from "./WalletInfoWidget";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -155,14 +157,14 @@ const TimelineRow = ({ milestone }) => {
       <div className="tl-chain-card">
         <div className="tl-chain-row">
           <span className="tl-chain-label">NETWORK</span>
-          <span className="tl-chain-val network">Polygon</span>
+          <span className="tl-chain-val network">Sepolia</span>
         </div>
         <div className="tl-chain-row">
           <span className="tl-chain-label">HASH</span>
           <span className="tl-chain-val hash">
             {tx?.tx_hash ? (
               <a
-                href={`https://polygonscan.com/tx/${tx.tx_hash}`}
+                href={`https://sepolia.etherscan.io/tx/${tx.tx_hash}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="tl-hash-link"
@@ -354,16 +356,53 @@ const FarmPaymentsPage = () => {
               </p>
             </div>
           </div>
-          <a
-            href={`https://polygonscan.com/address/${farm?.wallet_address || ""}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="fp-ledger-link"
-          >
-            View Public Ledger
-            <span className="material-symbols-outlined">open_in_new</span>
-          </a>
+          <div className="fp-header-right">
+            {role !== "farmer" && <WalletInfoWidget />}
+            <a
+              href={`https://sepolia.etherscan.io/address/${farm?.wallet_address || ""}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="fp-ledger-link"
+            >
+              View on Etherscan
+              <span className="material-symbols-outlined">open_in_new</span>
+            </a>
+          </div>
         </div>
+
+        {role === "farmer" && farm?.wallet_address && (
+          <div className="fp-farmer-wallet">
+            <span className="material-symbols-outlined fp-farmer-wallet-icon">account_balance_wallet</span>
+            <div>
+              <div className="fp-farmer-wallet-label">Your payment wallet</div>
+              <div className="fp-farmer-wallet-addr">
+                <span>{farm.wallet_address}</span>
+                <button
+                  className="fp-farmer-wallet-copy"
+                  onClick={() => {
+                    navigator.clipboard.writeText(farm.wallet_address);
+                    toast.success("Address copied!");
+                  }}
+                  title="Copy address"
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 14 }}>content_copy</span>
+                </button>
+                <a
+                  href={`https://sepolia.etherscan.io/address/${farm.wallet_address}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="fp-farmer-wallet-copy"
+                  title="View balance on Etherscan"
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 14 }}>open_in_new</span>
+                </a>
+              </div>
+              <div className="fp-farmer-wallet-hint">
+                Funds released to this address — open in MetaMask or any Ethereum wallet to access USDT.
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Summary Cards */}
         <div className="fp-summary-row">
@@ -430,12 +469,12 @@ const FarmPaymentsPage = () => {
             <div className="fp-section-row">
               <h2 className="fp-section-title">Blockchain Timeline</h2>
               <a
-                href={`https://polygonscan.com/address/${farm?.wallet_address || ""}`}
+                href={`https://sepolia.etherscan.io/address/${farm?.wallet_address || ""}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="fp-ledger-link small"
               >
-                View Public Ledger
+                View on Etherscan
                 <span className="material-symbols-outlined">open_in_new</span>
               </a>
             </div>
@@ -489,6 +528,9 @@ const FarmPaymentsPage = () => {
                         >
                           {m.payment_status || "pending"}
                         </span>
+                        {role !== "farmer" && (
+                          <FundMilestoneButton milestone={m} farm={farm} />
+                        )}
                       </td>
                       <td className="fp-date-cell">{formatDate(m.updated_at)}</td>
                     </tr>
