@@ -10,9 +10,28 @@ const Sidebar = () => {
   const location = useLocation();
   const { role } = useAuth();
 
+  const isNavItemActive = (path) => {
+    if (path === "/farmer-dashboard") {
+      return location.pathname === "/home" || location.pathname === "/farmer-dashboard";
+    }
+
+    if (path === "/admin-dashboard") {
+      return (
+        location.pathname === "/admin-dashboard" ||
+        location.pathname.startsWith("/admin/farms/")
+      );
+    }
+
+    if (path === "/farms") {
+      return location.pathname === "/farms" || location.pathname.startsWith("/farm/");
+    }
+
+    return location.pathname === path || location.pathname.startsWith(`${path}/`);
+  };
+
   // Define navigation items based on user role
   const farmerNavItems = [
-    { path: "/home", icon: "home", label: "Dashboard" },
+    { path: "/farmer-dashboard", icon: "home", label: "Dashboard" },
     { path: "/farms", icon: "grass", label: "Farms" },
     { path: "/payments", icon: "payments", label: "Payments" },
     { path: "/reports", icon: "analytics", label: "Reports" },
@@ -20,7 +39,7 @@ const Sidebar = () => {
   ];
 
   const adminNavItems = [
-    { path: "/home", icon: "home", label: "Dashboard" },
+    { path: "/admin-dashboard", icon: "home", label: "Dashboard" },
     { path: "/reports", icon: "analytics", label: "Reports" },
     { path: "/settings", icon: "settings", label: "Settings" },
     { path: "/payments", icon: "payments", label: "Payments" },
@@ -40,9 +59,7 @@ const Sidebar = () => {
           <Link
             key={item.path}
             to={item.path}
-            className={`nav-item ${
-              location.pathname === item.path ? "active" : ""
-            }`}
+            className={`nav-item ${isNavItemActive(item.path) ? "active" : ""}`}
           >
             <span className="material-symbols-outlined">{item.icon}</span>
             {item.label}

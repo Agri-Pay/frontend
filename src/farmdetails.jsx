@@ -696,20 +696,16 @@ const FarmDetailsPage = () => {
 
     const action =
       verificationResult?.verdict === "MILESTONE_FAILED" ? "reject" : "verify";
+    const newStatus = action === "verify" ? MILESTONE_STATUS.VERIFIED : MILESTONE_STATUS.REJECTED;
 
     try {
-      const { data, error } = await supabase.functions.invoke(
-        "update-milestone-status",
-        {
-          body: {
-            milestoneId: milestoneToVerify.id,
-            action,
-          },
-        }
-      );
+      // Direct database update - triggers will handle notifications
+      const { error } = await supabase
+        .from("cycle_milestones")
+        .update({ status: newStatus })
+        .eq("id", milestoneToVerify.id);
 
       if (error) throw error;
-      if (data?.error) throw new Error(data.error);
 
       if (action === "verify") {
         toast.success("Milestone approved successfully");
@@ -725,7 +721,7 @@ const FarmDetailsPage = () => {
         setCycleMilestones((prev) =>
           prev.map((m) =>
             m.id === milestoneToVerify.id
-              ? { ...m, status: MILESTONE_STATUS.NOT_STARTED }
+              ? { ...m, status: MILESTONE_STATUS.REJECTED }
               : m
           )
         );
@@ -734,6 +730,7 @@ const FarmDetailsPage = () => {
       console.error("Verification error:", error);
       toast.error(error.message || "Error updating verification");
     }
+    setShowConfirmDialog(false);
     setMilestoneToVerify(null);
   };
   const handleStartCycle = async () => {
@@ -758,18 +755,13 @@ const FarmDetailsPage = () => {
   };
   const handleStatusChange = async (milestoneId, newStatus) => {
     try {
-      const { data, error } = await supabase.functions.invoke(
-        "update-milestone-status",
-        {
-          body: {
-            milestoneId,
-            newStatus,
-          },
-        }
-      );
+      // Direct database update - triggers will handle notifications
+      const { error } = await supabase
+        .from("cycle_milestones")
+        .update({ status: newStatus })
+        .eq("id", milestoneId);
 
       if (error) throw error;
-      if (data?.error) throw new Error(data.error);
 
       // Update local state for instant UI feedback
       setCycleMilestones((prev) =>
@@ -777,6 +769,10 @@ const FarmDetailsPage = () => {
           m.id === milestoneId ? { ...m, status: newStatus } : m
         )
       );
+
+      if (newStatus === MILESTONE_STATUS.PENDING_VERIFICATION) {
+        toast.success("Milestone submitted for verification!");
+      }
     } catch (error) {
       console.error("Status change error:", error);
       toast.error(error.message || "Error updating status");
