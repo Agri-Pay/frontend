@@ -43,7 +43,7 @@
     box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
     border: 1px solid #e2e8f0;
     width: 380px;
-    z-index: 50;
+    z-index: 1000;
     margin-top: 0.75rem;
 }
 

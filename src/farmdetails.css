@@ -1795,3 +1795,101 @@
         grid-template-columns: 1fr;
     }
 }
+/* ============================================================
+   Payment Wallet card (fd-wallet-*)
+   ============================================================ */
+.fd-wallet-card {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 14px;
+  padding: 1.1rem 1.25rem;
+  margin-bottom: 1.5rem;
+}
+.fd-wallet-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+.fd-wallet-icon {
+  font-size: 24px !important;
+  color: #059669;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.fd-wallet-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #065f46;
+}
+.fd-wallet-sub {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+.fd-wallet-row {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+}
+.fd-wallet-connect-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 20px;
+  background: #059669;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.fd-wallet-connect-btn:hover { background: #047857; }
+.fd-wallet-connect-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.fd-wallet-address-display {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #fff;
+  border: 1.5px solid #10b981;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 0.5rem;
+}
+.fd-wallet-addr {
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  color: #1e293b;
+  word-break: break-all;
+}
+.fd-wallet-syncing {
+  font-size: 11px;
+  color: #6b7280;
+  white-space: nowrap;
+}
+.fd-wallet-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.fd-wallet-disconnect-btn {
+  padding: 4px 12px;
+  background: transparent;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.fd-wallet-disconnect-btn:hover { background: #fef2f2; }
+.fd-wallet-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #059669;
+  text-decoration: none;
+}
+.fd-wallet-link:hover { text-decoration: underline; }

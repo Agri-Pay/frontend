@@ -112,22 +112,28 @@ const FarmsPage = () => {
   useEffect(() => {
     const fetchFarms = async () => {
       try {
-        const { data, error } = await supabase.rpc("get_user_farms_geojson");
-        if (error) {
-          console.warn("RPC not available, using fallback:", error.message);
-          const { data: fallbackData, error: fallbackError } = await supabase
-            .from("farms")
-            .select("id, name, area_hectares");
-          if (fallbackError) {
-            toast.error("Failed to load farms");
-          } else {
-            setFarms(fallbackData?.map((f) => ({ ...f, boundary_geojson: null })) || []);
-          }
+        // Fetch farms with is_public directly
+        const { data, error } = await supabase
+          .from("farms")
+          .select("id, name, area_hectares, is_public");
+        if (error) throw error;
+
+        // Try to enrich with boundary_geojson from RPC
+        const { data: rpcData } = await supabase.rpc("get_user_farms_geojson");
+        if (rpcData) {
+          const rpcMap = Object.fromEntries(rpcData.map((f) => [f.id, f]));
+          setFarms(
+            data.map((f) => ({
+              ...rpcMap[f.id],
+              ...f, // is_public from direct query wins
+            }))
+          );
         } else {
-          setFarms(data || []);
+          setFarms(data.map((f) => ({ ...f, boundary_geojson: null })));
         }
       } catch (err) {
         toast.error("Failed to load farms");
+        console.error(err);
       } finally {
         setLoading(false);
       }

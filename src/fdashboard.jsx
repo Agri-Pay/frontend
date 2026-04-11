@@ -5,6 +5,7 @@ import "./dashboard.css";
 import Modal from "./modal";
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
+import Notifications from "./notifications";
 
 // src/pages/DashboardPage.jsx
 import { useState, useEffect } from "react";
@@ -13,6 +14,142 @@ import Spinner from "./spinner";
 import { toast } from "react-hot-toast";
 import { isVerified, normalizeStatus, MILESTONE_STATUSES } from "./utils/statusHelpers";
 import { getMapboxStaticImageUrl } from "./utils/geometryHelpers";
+import { useWeb3Auth } from "./Web3Context";
+import { ethers } from "ethers";
+
+const USDT_ADDRESS = "0x784D56a7d78380e1c5338cDA3839a1d0F7Ba04B9";
+const USDT_ABI = ["function balanceOf(address account) external view returns (uint256)"];
+
+/* ── Farmer Wallet Panel ─────────────────────────────────────── */
+const FarmerWalletPanel = () => {
+  const { loggedIn, login, logout, provider, loading: web3Loading, initialized } = useWeb3Auth();
+  const [address, setAddress]       = React.useState(null);
+  const [ethBalance, setEthBalance] = React.useState(null);
+  const [usdtBalance, setUsdtBalance] = React.useState(null);
+  const [fetching, setFetching]     = React.useState(false);
+
+  const fetchBalances = React.useCallback(async () => {
+    if (!loggedIn || !provider) return;
+    try {
+      setFetching(true);
+      const ethersProvider = new ethers.providers.Web3Provider(provider);
+      const signer = ethersProvider.getSigner();
+      const addr = await signer.getAddress();
+      setAddress(addr);
+      const [ethBal, usdtBal] = await Promise.all([
+        ethersProvider.getBalance(addr),
+        new ethers.Contract(USDT_ADDRESS, USDT_ABI, ethersProvider).balanceOf(addr),
+      ]);
+      setEthBalance(parseFloat(ethers.utils.formatEther(ethBal)).toFixed(4));
+      setUsdtBalance(parseFloat(ethers.utils.formatUnits(usdtBal, 6)).toFixed(2));
+    } catch (err) {
+      console.error("Wallet fetch error:", err);
+    } finally {
+      setFetching(false);
+    }
+  }, [loggedIn, provider]);
+
+  React.useEffect(() => {
+    if (loggedIn && provider) fetchBalances();
+    else { setAddress(null); setEthBalance(null); setUsdtBalance(null); }
+  }, [loggedIn, provider, fetchBalances]);
+
+  const copyAddress = () => {
+    if (!address) return;
+    navigator.clipboard.writeText(address);
+    toast.success("Address copied!");
+  };
+
+  if (!initialized) return null;
+
+  return (
+    <section className="dashboard-section">
+      <div className="section-heading-row">
+        <span className="material-symbols-outlined">account_balance_wallet</span>
+        <h2>Earnings Wallet</h2>
+      </div>
+      <div className="fw-panel">
+        {loggedIn && address ? (
+          <>
+            <div className="fw-panel-left">
+              <div className="fw-status-dot" />
+              <div>
+                <p className="fw-label">Connected Wallet</p>
+                <p className="fw-address">{address}</p>
+              </div>
+              <div className="fw-addr-actions">
+                <button className="fw-icon-btn" onClick={copyAddress} title="Copy address">
+                  <span className="material-symbols-outlined">content_copy</span>
+                </button>
+                <a
+                  className="fw-icon-btn"
+                  href={`https://sepolia.etherscan.io/address/${address}`}
+                  target="_blank" rel="noopener noreferrer"
+                  title="View on Etherscan"
+                >
+                  <span className="material-symbols-outlined">open_in_new</span>
+                </a>
+                <button className="fw-icon-btn" onClick={fetchBalances} title="Refresh balances">
+                  <span className="material-symbols-outlined">refresh</span>
+                </button>
+              </div>
+            </div>
+            <div className="fw-balances">
+              <div className="fw-balance-card fw-usdt">
+                <span className="material-symbols-outlined fw-bal-icon">payments</span>
+                <div>
+                  <p className="fw-bal-label">USDT Balance</p>
+                  <p className="fw-bal-value">{fetching ? "…" : `${usdtBalance ?? "0.00"} USDT`}</p>
+                </div>
+              </div>
+              <div className="fw-balance-card fw-eth">
+                <span className="material-symbols-outlined fw-bal-icon">currency_exchange</span>
+                <div>
+                  <p className="fw-bal-label">ETH (Gas)</p>
+                  <p className={`fw-bal-value${ethBalance === "0.0000" ? " fw-zero" : ""}`}>
+                    {fetching ? "…" : `${ethBalance ?? "0.0000"} ETH`}
+                  </p>
+                  {ethBalance === "0.0000" && (
+                    <a className="fw-faucet-link" href="https://cloud.google.com/application/web3/faucet/ethereum/sepolia" target="_blank" rel="noopener noreferrer">
+                      Get free Sepolia ETH →
+                    </a>
+                  )}
+                </div>
+              </div>
+              <div className="fw-balance-card fw-network">
+                <span className="material-symbols-outlined fw-bal-icon">language</span>
+                <div>
+                  <p className="fw-bal-label">Network</p>
+                  <p className="fw-bal-value">Sepolia Testnet</p>
+                </div>
+              </div>
+            </div>
+            <button className="fw-disconnect-btn" onClick={logout}>
+              <span className="material-symbols-outlined">logout</span>
+              Disconnect
+            </button>
+          </>
+        ) : (
+          <div className="fw-connect-state">
+            <span className="material-symbols-outlined fw-connect-icon">account_balance_wallet</span>
+            <div>
+              <p className="fw-connect-title">No wallet connected</p>
+              <p className="fw-connect-sub">Connect with Web3Auth to see your USDT earnings balance.</p>
+            </div>
+            <button
+              className="fw-connect-btn"
+              onClick={login}
+              disabled={web3Loading || !initialized}
+            >
+              {web3Loading ? "Connecting…" : "Connect Wallet"}
+            </button>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+};
+
 const DashboardPage = () => {
   // State to hold the user's profile and loading status
   const [userProfile, setUserProfile] = useState(null);
@@ -435,6 +572,7 @@ const DashboardPage = () => {
               </div>
             </div>
             <div className="dash-hero-actions">
+              <Notifications />
               <button className="add-farm-btn" onClick={() => setIsModalOpen(true)}>
                 <span className="material-symbols-outlined">add</span>
                 Add New Farm
@@ -488,6 +626,9 @@ const DashboardPage = () => {
             </div>
           </div>
         </section>
+
+        {/* ── Earnings Wallet ── */}
+        <FarmerWalletPanel />
 
         {/* ── Milestone Progress ── */}
         <section className="dashboard-section">

@@ -51,9 +51,10 @@ const STEPS = [
 ];
 
 const getActiveStep = (paymentStatus, approvalStatus) => {
-  if (paymentStatus === "paid") return 3;
-  if (paymentStatus === "processing") return 2;
-  if (isVerifiedStatus(approvalStatus)) return 1;
+  if (paymentStatus === "paid") return 4;          // all steps done
+  if (paymentStatus === "funded") return 3;         // at PAYOUT step
+  if (paymentStatus === "processing") return 2;     // at LEDGER step
+  if (isVerifiedStatus(approvalStatus)) return 1;   // at VERIFYING step
   return 0;
 };
 
@@ -64,7 +65,7 @@ const BlockchainStepTracker = ({ paymentStatus, approvalStatus }) => {
     <div className="bct-root">
       {STEPS.map((step, idx) => {
         const done    = idx < activeStep;
-        const current = idx === activeStep;
+        const current = idx === activeStep && activeStep < STEPS.length;
         return (
           <React.Fragment key={step.key}>
             <div className={`bct-step ${done ? "done" : current ? "current" : "future"}`}>
@@ -87,20 +88,30 @@ const BlockchainStepTracker = ({ paymentStatus, approvalStatus }) => {
 
 // ─── Verification In-Progress Card ───────────────────────────────────────────
 
-const VerificationCard = ({ milestone }) => {
+const VerificationCard = ({ milestone, farm, role }) => {
   const name   = milestone.milestone_templates?.name || "Unnamed Milestone";
   const amount = formatCurrency(milestone.amount);
+  const isPaid = milestone.payment_status === "paid";
 
   return (
-    <div className="verif-card">
+    <div className={`verif-card${isPaid ? " verif-card-paid" : ""}`}>
       <div className="verif-card-left">
-        <div className="verif-active-badge">ACTIVE</div>
+        <div className={`verif-active-badge${isPaid ? " verif-badge-paid" : ""}`}>
+          {isPaid ? "RELEASED" : "ACTIVE"}
+        </div>
         <div className="verif-title">Milestone: {name}</div>
         <div className="verif-amount">{amount}</div>
         <div className="verif-desc">
-          {milestone.notes ||
-            "Satellite verification has confirmed crop health. Our smart agent is currently performing technical auditing before final release."}
+          {isPaid
+            ? "Payment has been released to the farmer's wallet on-chain."
+            : (milestone.notes ||
+              "Satellite verification has confirmed crop health. Our smart agent is currently performing technical auditing before final release.")}
         </div>
+        {!isPaid && role !== "farmer" && (
+          <div style={{ marginTop: "0.75rem" }}>
+            <FundMilestoneButton milestone={milestone} farm={farm} />
+          </div>
+        )}
       </div>
       <div className="verif-card-right">
         <BlockchainStepTracker
@@ -265,7 +276,63 @@ const FarmPaymentsPage = () => {
     if (!authLoading) fetchData();
   }, [authLoading, fetchData]);
 
-  // ── Derived values ────────────────────────────────────────────────────────
+  // ── Realtime: watch for farmer wallet_address updates ─────────────────────
+  useEffect(() => {
+    if (!farmId) return;
+
+    const channel = supabase
+      .channel(`farm-wallet-${farmId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "farms",
+          filter: `id=eq.${farmId}`,
+        },
+        (payload) => {
+          const updated = payload.new;
+          if (updated.wallet_address !== undefined) {
+            setFarm((prev) => prev ? { ...prev, wallet_address: updated.wallet_address } : prev);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [farmId]);
+
+  // ── Realtime: watch for milestone payment_status changes ──────────────────
+  useEffect(() => {
+    if (!farmId) return;
+
+    const channel = supabase
+      .channel(`cycle-milestones-${farmId}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "cycle_milestones" },
+        (payload) => {
+          const updated = payload.new;
+          setCycles((prev) => {
+            let changed = false;
+            const next = prev.map((cycle) => ({
+              ...cycle,
+              milestones: cycle.milestones.map((m) => {
+                if (m.id === updated.id) {
+                  changed = true;
+                  return { ...m, payment_status: updated.payment_status, updated_at: updated.updated_at };
+                }
+                return m;
+              }),
+            }));
+            return changed ? next : prev;
+          });
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [farmId]);
 
   const allMilestones = cycles.flatMap((c) => c.milestones);
 
@@ -277,9 +344,9 @@ const FarmPaymentsPage = () => {
     .filter((m) => ["pending", "processing"].includes(m.payment_status))
     .reduce((s, m) => s + (m.amount || 0), 0);
 
-  // Milestones verified but not yet paid → currently in verification flow
+  // Milestones verified → show in verification flow with step progress (including paid)
   const inVerification = allMilestones.filter(
-    (m) => isVerifiedStatus(m.status) && m.payment_status !== "paid"
+    (m) => isVerifiedStatus(m.status)
   );
 
   const paidMilestones = allMilestones.filter((m) => m.payment_status === "paid");
@@ -457,7 +524,7 @@ const FarmPaymentsPage = () => {
             <h2 className="fp-section-title">Verification in Progress</h2>
             <div className="fp-verif-list">
               {inVerification.map((m) => (
-                <VerificationCard key={m.id} milestone={m} />
+                <VerificationCard key={m.id} milestone={m} farm={farm} role={role} />
               ))}
             </div>
           </section>

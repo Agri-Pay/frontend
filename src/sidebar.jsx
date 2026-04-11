@@ -2,8 +2,7 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import "./sidebar.css";
-import logo from "./assets/Image_fx.png";
-import Notifications from "./notifications";
+
 import { useAuth } from "./useauth";
 
 const Sidebar = () => {
@@ -14,70 +13,80 @@ const Sidebar = () => {
     if (path === "/farmer-dashboard") {
       return location.pathname === "/home" || location.pathname === "/farmer-dashboard";
     }
-
     if (path === "/admin-dashboard") {
       return (
         location.pathname === "/admin-dashboard" ||
         location.pathname.startsWith("/admin/farms/")
       );
     }
-
     if (path === "/farms") {
       return location.pathname === "/farms" || location.pathname.startsWith("/farm/");
     }
-
     return location.pathname === path || location.pathname.startsWith(`${path}/`);
   };
 
-  // Define navigation items based on user role
   const farmerNavItems = [
-    { path: "/farmer-dashboard", icon: "home", label: "Dashboard" },
-    { path: "/farms", icon: "grass", label: "Farms" },
-    { path: "/payments", icon: "payments", label: "Payments" },
-    { path: "/reports", icon: "analytics", label: "Reports" },
-    { path: "/settings", icon: "settings", label: "Settings" },
+    { path: "/farmer-dashboard", icon: "home",     label: "Dashboard" },
+    { path: "/farms",            icon: "grass",    label: "Farms" },
+    { path: "/payments",         icon: "payments", label: "Payments" },
+    { path: "/reports",          icon: "analytics",label: "Reports" },
+    { path: "/settings",         icon: "settings", label: "Settings" },
   ];
 
   const adminNavItems = [
-    { path: "/admin-dashboard", icon: "home", label: "Dashboard" },
-    { path: "/reports", icon: "analytics", label: "Reports" },
-    { path: "/settings", icon: "settings", label: "Settings" },
-    { path: "/payments", icon: "payments", label: "Payments" },
+    { path: "/admin-dashboard", icon: "home",      label: "Dashboard" },
+    { path: "/payments",        icon: "payments",  label: "Payments" },
+    { path: "/reports",         icon: "analytics", label: "Reports" },
+    { path: "/settings",        icon: "settings",  label: "Settings" },
   ];
 
-  // Select nav items based on role
   const navItems = role === "admin" ? adminNavItems : farmerNavItems;
 
   return (
     <aside className="sidebar">
-      <div className="sidebar-header">
-        <img className="logo-img" src={logo} alt="AgriPay" />
-        <h1 className="logo-text">AgriPay</h1>
+      {/* ── Brand ── */}
+      <div className="sidebar-brand">
+        <div className="sidebar-logo-wrap">
+          <img className="sidebar-logo-img" src="/favicon.png" alt="AgriPay" />
+        </div>
+        <div>
+          <span className="sidebar-brand-name">AgriPay</span>
+          <span className="sidebar-role-chip">
+            {role === "admin" ? "Admin" : "Farmer"}
+          </span>
+        </div>
       </div>
+
+      {/* ── Nav ── */}
       <nav className="sidebar-nav">
-        {navItems.map((item) => (
-          <Link
-            key={item.path}
-            to={item.path}
-            className={`nav-item ${isNavItemActive(item.path) ? "active" : ""}`}
-          >
-            <span className="material-symbols-outlined">{item.icon}</span>
-            {item.label}
-          </Link>
-        ))}
+        <p className="sidebar-section-label">MENU</p>
+        {navItems.map((item) => {
+          const active = isNavItemActive(item.path);
+          return (
+            <Link
+              key={item.path}
+              to={item.path}
+              className={`nav-item ${active ? "active" : ""}`}
+            >
+              <span className={`nav-icon-wrap ${active ? "active" : ""}`}>
+                <span className="material-symbols-outlined">{item.icon}</span>
+              </span>
+              <span className="nav-label">{item.label}</span>
+              {active && <span className="nav-active-dot" />}
+            </Link>
+          );
+        })}
       </nav>
-      {/* <div className="sidebar-footer">
-        <Link to="/help" className="nav-item">
-          <span className="material-symbols-outlined">help</span>
-          Help and Support
-        </Link>
-      </div> */}
+
+      {/* ── Footer ── */}
       <div className="sidebar-footer">
+        <div className="sidebar-divider" />
         <Link to="/help" className="nav-item">
-          <span className="material-symbols-outlined">help</span>
-          Help and Support
+          <span className="nav-icon-wrap">
+            <span className="material-symbols-outlined">help</span>
+          </span>
+          <span className="nav-label">Help &amp; Support</span>
         </Link>
-        {/* <Notifications /> Add component here */}
       </div>
     </aside>
   );

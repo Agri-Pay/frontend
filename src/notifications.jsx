@@ -2,41 +2,50 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "./createclient";
+import { useAuth } from "./useauth";
 import "./notifications.css";
 
 const Notifications = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const navigate = useNavigate();
+  const { user } = useAuth();
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = async (uid) => {
     const { data } = await supabase
       .from("notifications")
       .select("*")
+      .eq("user_id", uid)
       .order("created_at", { ascending: false })
-      .limit(10);
+      .limit(20);
     setNotifications(data || []);
   };
 
   useEffect(() => {
+    if (!user?.id) return;
+
+    fetchNotifications(user.id);
+
     const channel = supabase
-      .channel("realtime notifications")
+      .channel(`notifications-${user.id}`)
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "notifications" },
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${user.id}`,
+        },
         (payload) => {
-          // When a new notification comes in, add it to the top of the list
           setNotifications((current) => [payload.new, ...current]);
         }
       )
       .subscribe();
 
-    fetchNotifications(); // Fetch initial notifications
-
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [user?.id]);
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useWeb3Auth } from "./Web3Context";
 import { ethers } from "ethers";
 import { toast } from "react-hot-toast";
+import { supabase } from "./createclient";
 
 const CROP_ESCROW_ADDRESS = "0x9cFF3a5A713C0B2464E59d13C92018Ea7febDd25";
 const USDT_ADDRESS = "0x784D56a7d78380e1c5338cDA3839a1d0F7Ba04B9";
@@ -42,13 +43,29 @@ export const FundMilestoneButton = ({ milestone, farm }) => {
 
       // Amount: milestone.amount is stored in paisa (×100), parse as 6-decimal USDT
       // e.g. Rs 50000 stored as 5000000 paisa → 500.00 USDT (6 decimals)
+      if (!milestone.amount || milestone.amount <= 0) {
+        toast.error(
+          "This milestone has no amount set. Please set the milestone amount before funding.",
+          { id: "fund-toast", duration: 6000 }
+        );
+        return;
+      }
+
       const amountToFund = ethers.utils.parseUnits(
-        ((milestone.amount || 0) / 100).toFixed(6),
+        (milestone.amount / 100).toFixed(6),
         6
       );
 
       const milestoneIdBytes = ethers.utils.id(String(milestone.id));
-      const farmerAddress    = farm?.wallet_address || ethers.constants.AddressZero;
+
+      if (!farm?.wallet_address || !ethers.utils.isAddress(farm.wallet_address)) {
+        toast.error(
+          "This farm has no wallet address set. Ask the farmer to add their Ethereum address in their farm profile before funding.",
+          { id: "fund-toast", duration: 6000 }
+        );
+        return;
+      }
+      const farmerAddress = farm.wallet_address;
 
       // Step 1: Mint mock USDT to funder's address (test only)
       toast.loading("Minting test USDT...", { id: "fund-toast" });
@@ -68,6 +85,12 @@ export const FundMilestoneButton = ({ milestone, farm }) => {
       toast.success("Milestone funded successfully!", { id: "fund-toast" });
       console.log("Deposit tx:", receipt.transactionHash);
 
+      // Mark milestone as funded in DB so UI updates live
+      await supabase
+        .from("cycle_milestones")
+        .update({ payment_status: "funded", updated_at: new Date().toISOString() })
+        .eq("id", milestone.id);
+
     } catch (err) {
       console.error(err);
       toast.error("Funding failed: " + (err.reason || err.message), { id: "fund-toast" });
@@ -80,25 +103,65 @@ export const FundMilestoneButton = ({ milestone, farm }) => {
     return null;
   }
 
+  if (milestone.payment_status === "funded") {
+    return (
+      <div
+        style={{
+          marginTop: "8px",
+          padding: "4px 8px",
+          borderRadius: "4px",
+          background: "#ede9fe",
+          color: "#6d28d9",
+          fontSize: "12px",
+          textAlign: "center",
+          border: "1px solid #c4b5fd",
+        }}
+      >
+        Funded · Awaiting Release
+      </div>
+    );
+  }
+
+  const noWallet  = !farm?.wallet_address || !ethers.utils.isAddress(farm.wallet_address);
+  const noAmount  = !milestone.amount || milestone.amount <= 0;
+  const isDisabled = funding || authLoading || !initialized || noWallet || noAmount;
+
+  const buttonTitle = noAmount
+    ? "Milestone has no amount set — cannot fund"
+    : noWallet
+    ? "Farmer has no wallet address set — cannot fund"
+    : undefined;
+
+  const buttonLabel = funding
+    ? "Processing..."
+    : noAmount
+    ? "No Amount Set"
+    : noWallet
+    ? "No Wallet Set"
+    : loggedIn
+    ? "Fund Milestone"
+    : "Connect Wallet";
+
   return (
     <button
       onClick={handleFund}
-      disabled={funding || authLoading || !initialized}
+      disabled={isDisabled}
+      title={buttonTitle}
       style={{
         marginTop: "8px",
         padding: "4px 8px",
         borderRadius: "4px",
-        background: "#059669",
+        background: noAmount || noWallet ? "#94a3b8" : "#059669",
         color: "white",
         border: "none",
-        cursor: "pointer",
+        cursor: isDisabled ? "not-allowed" : "pointer",
         fontSize: "12px",
         display: "block",
         width: "100%",
-        opacity: (funding || authLoading || !initialized) ? 0.7 : 1
+        opacity: isDisabled ? 0.7 : 1
       }}
     >
-      {funding ? "Processing..." : (loggedIn ? "Fund Milestone" : "Connect Wallet")}
+      {buttonLabel}
     </button>
   );
 };

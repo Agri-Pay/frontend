@@ -248,6 +248,8 @@ import SatelliteImagerySection from "./SatelliteImagerySection";
 import IoTSensorSection from "./IoTSensorSection";
 import CropStageSection from "./CropStageSection";
 import { toast } from "react-hot-toast";
+import { useWeb3Auth } from "./Web3Context";
+import { ethers } from "ethers";
 
 // Import Chart.js components
 import { Line } from "react-chartjs-2";
@@ -403,6 +405,7 @@ const getFarmCoordinates = (farmData) => {
 const FarmDetailsPage = () => {
   const { farmId } = useParams();
   const { role, loading: authLoading } = useAuth();
+  const { loggedIn, login, logout, provider, loading: web3Loading, initialized: web3Initialized } = useWeb3Auth();
   const [farm, setFarm] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -457,6 +460,10 @@ const FarmDetailsPage = () => {
   const [pcOriginalUrl, setPcOriginalUrl] = useState(null); // preview of the original uploaded image
   const [pcDragOver, setPcDragOver] = useState(false);
   const pcPollRef = React.useRef(null);
+
+  // Farmer wallet — auto-synced from Web3Auth (no manual input needed)
+  const [farmerWalletAddress, setFarmerWalletAddress] = useState("");
+  const [walletSaving, setWalletSaving] = useState(false);
 
   useEffect(() => {
     const fetchFarmData = async () => {
@@ -608,6 +615,41 @@ const FarmDetailsPage = () => {
 
     fetchFarmData();
   }, [farmId]);
+
+  // Auto-read & auto-save farmer wallet from Web3Auth
+  useEffect(() => {
+    if (role !== "farmer" || !farm) return;
+
+    if (loggedIn && provider) {
+      const syncAddress = async () => {
+        try {
+          const ethProvider = new ethers.providers.Web3Provider(provider);
+          const address = await ethProvider.getSigner().getAddress();
+          setFarmerWalletAddress(address);
+
+          if (address !== farm.wallet_address) {
+            setWalletSaving(true);
+            const { error } = await supabase
+              .from("farms")
+              .update({ wallet_address: address })
+              .eq("id", farmId);
+            setWalletSaving(false);
+            if (!error) {
+              setFarm((prev) => ({ ...prev, wallet_address: address }));
+              toast.success("Payment wallet linked!", { id: "wallet-sync" });
+            }
+          }
+        } catch (err) {
+          console.error("Failed to sync wallet:", err);
+          setWalletSaving(false);
+        }
+      };
+      syncAddress();
+    } else {
+      // Not connected — show existing DB address so they know what's already saved
+      setFarmerWalletAddress(farm.wallet_address || "");
+    }
+  }, [loggedIn, provider, farm?.id, role]);
 
   // Function to fetch Sentinel Hub vegetation stats and history
   // Publishing now handled by scheduled satellite-data-scheduler
@@ -930,6 +972,57 @@ const FarmDetailsPage = () => {
             </div>
           </div>
         </div>
+
+        {/* ── Payment Wallet (farmer only) ── */}
+        {role === "farmer" && (
+          <div className="fd-wallet-card">
+            <div className="fd-wallet-header">
+              <span className="material-symbols-outlined fd-wallet-icon">account_balance_wallet</span>
+              <div>
+                <div className="fd-wallet-title">Payment Wallet</div>
+                <div className="fd-wallet-sub">
+                  {loggedIn && farmerWalletAddress
+                    ? "Your Web3Auth wallet is linked — milestone payments will be sent here."
+                    : "Connect with Web3Auth to link your wallet and receive payments."}
+                </div>
+              </div>
+            </div>
+
+            {loggedIn && farmerWalletAddress ? (
+              <div>
+                <div className="fd-wallet-address-display">
+                  {walletSaving && (
+                    <span className="fd-wallet-syncing">Syncing…</span>
+                  )}
+                  <span className="fd-wallet-addr">{farmerWalletAddress}</span>
+                </div>
+                <div className="fd-wallet-actions">
+                  <a
+                    className="fd-wallet-link"
+                    href={`https://sepolia.etherscan.io/address/${farmerWalletAddress}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 14 }}>open_in_new</span>
+                    View on Etherscan
+                  </a>
+                  <button className="fd-wallet-disconnect-btn" onClick={logout}>
+                    Disconnect
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                className="fd-wallet-connect-btn"
+                onClick={login}
+                disabled={web3Loading || !web3Initialized}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 18, verticalAlign: "middle", marginRight: 6 }}>login</span>
+                {web3Loading ? "Connecting…" : "Connect with Web3Auth"}
+              </button>
+            )}
+          </div>
+        )}
 
         {/* ── Crop Cycle / Milestone Section ── */}
         {activeCycle ? (
