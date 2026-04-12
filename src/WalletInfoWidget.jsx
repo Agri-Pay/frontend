@@ -2,10 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useWeb3Auth } from "./Web3Context";
 import { ethers } from "ethers";
 import { toast } from "react-hot-toast";
+import { USDT_ADDRESS, USDT_ABI, USDT_DECIMALS } from "./constants/contracts";
 import "./WalletInfoWidget.css";
-
-const USDT_ADDRESS = "0x784D56a7d78380e1c5338cDA3839a1d0F7Ba04B9";
-const USDT_ABI = ["function balanceOf(address account) external view returns (uint256)"];
 
 const truncate = (addr) =>
   addr ? `${addr.slice(0, 6)}…${addr.slice(-4)}` : "—";
@@ -46,7 +44,7 @@ export const WalletInfoWidget = () => {
       ]);
 
       setEthBalance(parseFloat(ethers.utils.formatEther(ethBal)).toFixed(4));
-      setUsdtBalance(parseFloat(ethers.utils.formatUnits(usdtBal, 6)).toFixed(2));
+      setUsdtBalance(parseFloat(ethers.utils.formatUnits(usdtBal, USDT_DECIMALS)).toFixed(2));
     } catch (err) {
       console.error("Failed to fetch wallet balances:", err);
     } finally {

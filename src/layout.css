@@ -12,6 +12,8 @@
     flex-direction: column;
     min-width: 0;
     /* Prevents flex child overflow */
+    height: 100vh;
+    overflow-y: auto;
 }
 
 .main-layout-content>main {

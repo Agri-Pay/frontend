@@ -10,7 +10,7 @@ import { useAuth } from "./useauth";
 import { getMapboxStaticImageUrl } from "./utils/geometryHelpers";
 
 // ── Farm Card ──────────────────────────────────────────────────
-const FarmCard = ({ farm, onTogglePublic, role }) => {
+const FarmCard = ({ farm, onTogglePublic, role, milestoneStats }) => {
   const navigate = useNavigate();
   const mapboxApiKey = import.meta.env.VITE_MAPBOX_API_KEY;
 
@@ -28,10 +28,10 @@ const FarmCard = ({ farm, onTogglePublic, role }) => {
     if (geom) imageUrl = getMapboxStaticImageUrl(geom, mapboxApiKey);
   }
 
-  // Milestone progress (placeholder)
-  const milestonesComplete = 0;
-  const totalMilestones = 5;
-  const progress = (milestonesComplete / totalMilestones) * 100;
+  // Milestone progress from real data
+  const totalMilestones = milestoneStats?.total || 0;
+  const milestonesComplete = milestoneStats?.completed || 0;
+  const progress = totalMilestones > 0 ? (milestonesComplete / totalMilestones) * 100 : 0;
 
   return (
     <div className="farm-card">
@@ -104,6 +104,7 @@ const FarmCard = ({ farm, onTogglePublic, role }) => {
 // ── Farms Page ─────────────────────────────────────────────────
 const FarmsPage = () => {
   const [farms, setFarms] = useState([]);
+  const [milestoneMap, setMilestoneMap] = useState({}); // farm_id → { total, completed }
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const navigate = useNavigate();
@@ -130,6 +131,29 @@ const FarmsPage = () => {
           );
         } else {
           setFarms(data.map((f) => ({ ...f, boundary_geojson: null })));
+        }
+
+        // Fetch milestone stats for all farms via active crop cycles
+        const farmIds = data.map((f) => f.id);
+        if (farmIds.length > 0) {
+          const { data: cycles } = await supabase
+            .from("crop_cycles")
+            .select("farm_id, cycle_milestones(id, payment_status)")
+            .in("farm_id", farmIds)
+            .eq("is_active", true);
+
+          if (cycles) {
+            const statsMap = {};
+            for (const cycle of cycles) {
+              const milestones = cycle.cycle_milestones || [];
+              const prev = statsMap[cycle.farm_id] || { total: 0, completed: 0 };
+              statsMap[cycle.farm_id] = {
+                total: prev.total + milestones.length,
+                completed: prev.completed + milestones.filter((m) => m.payment_status === "paid").length,
+              };
+            }
+            setMilestoneMap(statsMap);
+          }
         }
       } catch (err) {
         toast.error("Failed to load farms");
@@ -202,7 +226,7 @@ const FarmsPage = () => {
         {/* ── Farm Cards Grid ── */}
         <div className="farms-grid">
           {filtered.map((farm) => (
-            <FarmCard key={farm.id} farm={farm} onTogglePublic={handleTogglePublic} role={role} />
+            <FarmCard key={farm.id} farm={farm} onTogglePublic={handleTogglePublic} role={role} milestoneStats={milestoneMap[farm.id]} />
           ))}
 
           {/* ── Add Farm card (farmers only) ── */}

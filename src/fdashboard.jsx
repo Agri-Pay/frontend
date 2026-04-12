@@ -16,9 +16,7 @@ import { isVerified, normalizeStatus, MILESTONE_STATUSES } from "./utils/statusH
 import { getMapboxStaticImageUrl } from "./utils/geometryHelpers";
 import { useWeb3Auth } from "./Web3Context";
 import { ethers } from "ethers";
-
-const USDT_ADDRESS = "0x784D56a7d78380e1c5338cDA3839a1d0F7Ba04B9";
-const USDT_ABI = ["function balanceOf(address account) external view returns (uint256)"];
+import { USDT_ADDRESS, USDT_ABI, USDT_DECIMALS } from "./constants/contracts";
 
 /* ── Farmer Wallet Panel ─────────────────────────────────────── */
 const FarmerWalletPanel = () => {
@@ -41,7 +39,7 @@ const FarmerWalletPanel = () => {
         new ethers.Contract(USDT_ADDRESS, USDT_ABI, ethersProvider).balanceOf(addr),
       ]);
       setEthBalance(parseFloat(ethers.utils.formatEther(ethBal)).toFixed(4));
-      setUsdtBalance(parseFloat(ethers.utils.formatUnits(usdtBal, 6)).toFixed(2));
+      setUsdtBalance(parseFloat(ethers.utils.formatUnits(usdtBal, USDT_DECIMALS)).toFixed(2));
     } catch (err) {
       console.error("Wallet fetch error:", err);
     } finally {

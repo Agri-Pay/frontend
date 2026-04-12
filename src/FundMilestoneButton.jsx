@@ -3,17 +3,13 @@ import { useWeb3Auth } from "./Web3Context";
 import { ethers } from "ethers";
 import { toast } from "react-hot-toast";
 import { supabase } from "./createclient";
-
-const CROP_ESCROW_ADDRESS = "0x9cFF3a5A713C0B2464E59d13C92018Ea7febDd25";
-const USDT_ADDRESS = "0x784D56a7d78380e1c5338cDA3839a1d0F7Ba04B9";
-
-const CROP_ESCROW_ABI = [
-  "function deposit(bytes32 _milestoneId, address _farmer, uint256 _amount) external"
-];
-const USDT_ABI = [
-  "function approve(address spender, uint256 amount) external returns (bool)",
-  "function mint(address to, uint256 amount) external"
-];
+import {
+  CROP_ESCROW_ADDRESS,
+  USDT_ADDRESS,
+  CROP_ESCROW_ABI,
+  USDT_ABI,
+  USDT_DECIMALS,
+} from "./constants/contracts";
 
 export const FundMilestoneButton = ({ milestone, farm }) => {
   const { loggedIn, login, provider, loading: authLoading, initialized } = useWeb3Auth();
@@ -52,8 +48,8 @@ export const FundMilestoneButton = ({ milestone, farm }) => {
       }
 
       const amountToFund = ethers.utils.parseUnits(
-        (milestone.amount / 100).toFixed(6),
-        6
+        (milestone.amount / 100).toFixed(USDT_DECIMALS),
+        USDT_DECIMALS
       );
 
       const milestoneIdBytes = ethers.utils.id(String(milestone.id));
@@ -84,6 +80,19 @@ export const FundMilestoneButton = ({ milestone, farm }) => {
 
       toast.success("Milestone funded successfully!", { id: "fund-toast" });
       console.log("Deposit tx:", receipt.transactionHash);
+
+      // Record the on-chain transaction in the DB
+      const { error: txErr } = await supabase.from("transactions").insert({
+        cycle_milestone_id: milestone.id,
+        tx_hash: receipt.transactionHash,
+        amount: milestone.amount, // stored in paisa, matches cycle_milestones.amount
+        status: "confirmed",
+        blockchain_network: "sepolia",
+        gas_fee_wei: receipt.gasUsed.mul(receipt.effectiveGasPrice).toString(),
+        from_address: signerAddress,
+        to_address: CROP_ESCROW_ADDRESS,
+      });
+      if (txErr) console.error("Failed to save transaction:", txErr);
 
       // Mark milestone as funded in DB so UI updates live
       await supabase

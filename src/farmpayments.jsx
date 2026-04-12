@@ -52,9 +52,9 @@ const STEPS = [
 
 const getActiveStep = (paymentStatus, approvalStatus) => {
   if (paymentStatus === "paid") return 4;          // all steps done
-  if (paymentStatus === "funded") return 3;         // at PAYOUT step
-  if (paymentStatus === "processing") return 2;     // at LEDGER step
-  if (isVerifiedStatus(approvalStatus)) return 1;   // at VERIFYING step
+  if (paymentStatus === "processing") return 3;    // at PAYOUT step (oracle releasing)
+  if (paymentStatus === "funded") return 2;        // at LEDGER step (escrow funded)
+  if (isVerifiedStatus(approvalStatus)) return 1;  // at VERIFYING step
   return 0;
 };
 
