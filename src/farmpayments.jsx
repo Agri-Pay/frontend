@@ -125,7 +125,7 @@ const VerificationCard = ({ milestone, farm, role }) => {
 
 // ─── Blockchain Timeline Row ──────────────────────────────────────────────────
 
-const TimelineRow = ({ milestone }) => {
+const TimelineRow = ({ milestone, farm }) => {
   const name   = milestone.milestone_templates?.name || "Unnamed";
   const amount = formatCurrency(milestone.amount);
   const tx     = milestone.transactions?.[0];
@@ -134,6 +134,15 @@ const TimelineRow = ({ milestone }) => {
   const verifyDate = null;   // not yet stored separately
   const chainDate  = tx?.created_at || null;
   const paidDate   = milestone.payment_status === "paid" ? milestone.updated_at : null;
+
+  // Accurate chain metadata from the transaction record
+  const network       = tx?.blockchain_network || "sepolia";
+  const networkLabel  = network.charAt(0).toUpperCase() + network.slice(1);
+  const explorerBase  = network === "sepolia"
+    ? "https://sepolia.etherscan.io"
+    : "https://etherscan.io";
+  // Show the farmer's receiving wallet (where oracle released funds to)
+  const farmerWallet  = farm?.wallet_address || tx?.from_address || null;
 
   return (
     <div className="tl-row">
@@ -168,14 +177,14 @@ const TimelineRow = ({ milestone }) => {
       <div className="tl-chain-card">
         <div className="tl-chain-row">
           <span className="tl-chain-label">NETWORK</span>
-          <span className="tl-chain-val network">Sepolia</span>
+          <span className="tl-chain-val network">{networkLabel}</span>
         </div>
         <div className="tl-chain-row">
           <span className="tl-chain-label">HASH</span>
           <span className="tl-chain-val hash">
             {tx?.tx_hash ? (
               <a
-                href={`https://sepolia.etherscan.io/tx/${tx.tx_hash}`}
+                href={`${explorerBase}/tx/${tx.tx_hash}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="tl-hash-link"
@@ -190,7 +199,19 @@ const TimelineRow = ({ milestone }) => {
         <div className="tl-chain-row">
           <span className="tl-chain-label">WALLET</span>
           <span className="tl-chain-val hash">
-            {tx?.wallet_address ? truncateHash(tx.wallet_address) : "0x…"}
+            {farmerWallet ? (
+              <a
+                href={`${explorerBase}/address/${farmerWallet}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="tl-hash-link"
+                title={farmerWallet}
+              >
+                {truncateHash(farmerWallet)}
+              </a>
+            ) : (
+              <span className="tl-hash-pending">—</span>
+            )}
           </span>
         </div>
       </div>
@@ -249,7 +270,7 @@ const FarmPaymentsPage = () => {
             .select(`
               id, status, amount, payment_status, updated_at,
               milestone_templates(id, name, description),
-              transactions(id, tx_hash, status, created_at)
+              transactions(id, tx_hash, status, created_at, from_address, blockchain_network)
             `)
             .eq("crop_cycle_id", cycle.id)
             .order("updated_at", { ascending: false });
@@ -320,7 +341,7 @@ const FarmPaymentsPage = () => {
               milestones: cycle.milestones.map((m) => {
                 if (m.id === updated.id) {
                   changed = true;
-                  return { ...m, payment_status: updated.payment_status, updated_at: updated.updated_at };
+                  return { ...m, status: updated.status ?? m.status, payment_status: updated.payment_status, updated_at: updated.updated_at };
                 }
                 return m;
               }),
@@ -547,7 +568,7 @@ const FarmPaymentsPage = () => {
             </div>
             <div className="fp-timeline-list">
               {paidMilestones.map((m) => (
-                <TimelineRow key={m.id} milestone={m} />
+                <TimelineRow key={m.id} milestone={m} farm={farm} />
               ))}
             </div>
           </section>

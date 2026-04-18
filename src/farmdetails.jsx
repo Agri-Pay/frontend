@@ -231,6 +231,7 @@ import { supabase } from "./createclient";
 import Sidebar from "./sidebar";
 import Modal from "./modal";
 import ConfirmDialog from "./confirmdialog";
+import MilestoneVerificationPanel from "./MilestoneVerificationPanel";
 import {
   getWeatherForPolygon,
   getSoilDataForPolygon,
@@ -775,6 +776,33 @@ const FarmDetailsPage = () => {
     setShowConfirmDialog(false);
     setMilestoneToVerify(null);
   };
+
+  const handleManualReject = async () => {
+    if (!milestoneToVerify) return;
+    try {
+      const { error } = await supabase
+        .from("cycle_milestones")
+        .update({ status: MILESTONE_STATUS.REJECTED })
+        .eq("id", milestoneToVerify.id);
+      if (error) throw error;
+      toast.success("Milestone rejected");
+      setCycleMilestones((prev) =>
+        prev.map((m) =>
+          m.id === milestoneToVerify.id
+            ? { ...m, status: MILESTONE_STATUS.REJECTED }
+            : m
+        )
+      );
+    } catch (err) {
+      console.error("Rejection error:", err);
+      toast.error(err.message || "Error rejecting milestone");
+    }
+    setShowConfirmDialog(false);
+    setMilestoneToVerify(null);
+    setVerificationResult(null);
+    setVerificationError(null);
+  };
+
   const handleStartCycle = async () => {
     if (!selectedCropId) {
       // alert("Please select a crop.");
@@ -1543,7 +1571,7 @@ const FarmDetailsPage = () => {
         </div>
       </Modal>
 
-      <ConfirmDialog
+      <MilestoneVerificationPanel
         isOpen={showConfirmDialog}
         onClose={() => {
           setShowConfirmDialog(false);
@@ -1551,208 +1579,23 @@ const FarmDetailsPage = () => {
           setVerificationResult(null);
           setVerificationError(null);
         }}
-        onConfirm={handleConfirmApprove}
-        type={
-          verificationResult?.verdict === "MILESTONE_COMPLETE"
-            ? "success"
-            : verificationResult?.verdict === "MILESTONE_FAILED"
-            ? "danger"
-            : verificationResult?.verdict === "MANUAL_REVIEW_REQUIRED"
-            ? "warning"
-            : "success"
-        }
-        title={
-          verificationResult?.verdict === "MILESTONE_FAILED"
-            ? "Reject Milestone?"
-            : "Approve Milestone Verification?"
-        }
-        confirmText={
-          verificationResult?.verdict === "MILESTONE_FAILED"
-            ? "Reject Milestone"
-            : "Approve & Release Payment"
-        }
-        cancelText="Cancel"
-      >
-        {milestoneToVerify && (
-          <div className="confirm-dialog-details">
-            <p className="confirm-milestone-name">
-              <strong>
-                {milestoneToVerify.milestone_templates?.name || "Milestone"}
-              </strong>
-              {" - "}
-              {milestoneToVerify.crop_cycles?.crops?.name || "Crop"}
-            </p>
+        onApprove={handleConfirmApprove}
+        onReject={handleManualReject}
+        milestone={milestoneToVerify}
+        farm={farm}
+        sentinelStats={sentinelStats}
+        soil={soil}
+        currentWeather={currentWeather}
+        uvi={uvi}
+        farmId={farmId}
+        availableCrops={availableCrops}
+        activeCycle={activeCycle}
+        verificationResult={verificationResult}
+        verificationLoading={verificationLoading}
+        verificationError={verificationError}
+        onRunVerification={handleRunVerification}
+      />
 
-            {/* ML Verification Section */}
-            {!verificationResult && !verificationLoading && !verificationError && (
-              <div className="verification-prompt">
-                <button
-                  className="run-verification-btn"
-                  onClick={handleRunVerification}
-                >
-                  <span className="material-symbols-outlined">smart_toy</span>
-                  Run AI Verification
-                </button>
-                <p className="verification-hint">
-                  Analyzes satellite, drone, and IoT data to assess milestone
-                  completion. You can still approve manually without running AI.
-                </p>
-              </div>
-            )}
-
-            {/* Loading */}
-            {verificationLoading && (
-              <div className="verification-loading">
-                <span className="pc-spinner" />
-                <span>Running multi-source verification...</span>
-              </div>
-            )}
-
-            {/* Error */}
-            {verificationError && (
-              <div className="verification-error">
-                <span className="material-symbols-outlined">error</span>
-                <span>{verificationError}</span>
-                <button
-                  className="re-analyze-btn"
-                  onClick={handleRunVerification}
-                >
-                  Retry
-                </button>
-              </div>
-            )}
-
-            {/* ML Results */}
-            {verificationResult && (
-              <div className="verification-results">
-                <div
-                  className={`verdict-badge ${
-                    verificationResult.verdict === "MILESTONE_COMPLETE"
-                      ? "verdict-complete"
-                      : verificationResult.verdict === "MANUAL_REVIEW_REQUIRED"
-                      ? "verdict-review"
-                      : verificationResult.verdict === "MILESTONE_FAILED"
-                      ? "verdict-failed"
-                      : "verdict-unknown"
-                  }`}
-                >
-                  <span className="material-symbols-outlined">
-                    {verificationResult.verdict === "MILESTONE_COMPLETE"
-                      ? "check_circle"
-                      : verificationResult.verdict === "MANUAL_REVIEW_REQUIRED"
-                      ? "help"
-                      : verificationResult.verdict === "MILESTONE_FAILED"
-                      ? "cancel"
-                      : "help"}
-                  </span>
-                  {verificationResult.verdict === "MILESTONE_COMPLETE"
-                    ? "Milestone Complete"
-                    : verificationResult.verdict === "MANUAL_REVIEW_REQUIRED"
-                    ? "Manual Review Required"
-                    : verificationResult.verdict === "MILESTONE_FAILED"
-                    ? "Milestone Failed"
-                    : verificationResult.verdict?.replace(/_/g, " ")}
-                  <span className="verdict-confidence">
-                    {(verificationResult.overall_confidence * 100).toFixed(0)}%
-                  </span>
-                </div>
-
-                {/* Per-source confidence */}
-                <div className="source-confidence-grid">
-                  {[
-                    {
-                      name: "Satellite",
-                      key: "satellite_analysis",
-                      weight: "40%",
-                      icon: "satellite_alt",
-                    },
-                    {
-                      name: "Drone",
-                      key: "drone_analysis",
-                      weight: "35%",
-                      icon: "flight",
-                    },
-                    {
-                      name: "IoT Sensors",
-                      key: "iot_analysis",
-                      weight: "25%",
-                      icon: "sensors",
-                    },
-                  ].map((source) => {
-                    const data =
-                      verificationResult.report?.[source.key] ||
-                      verificationResult[source.key];
-                    const conf = data?.confidence || 0;
-                    const available = data?.status === "ANALYZED";
-                    return (
-                      <div key={source.key} className="source-row">
-                        <div className="source-label">
-                          <span className="material-symbols-outlined">
-                            {source.icon}
-                          </span>
-                          <span>{source.name}</span>
-                          <span className="source-weight">({source.weight})</span>
-                        </div>
-                        {available ? (
-                          <div className="confidence-bar-container">
-                            <div className="confidence-bar">
-                              <div
-                                className="confidence-fill"
-                                style={{
-                                  width: `${conf * 100}%`,
-                                  background:
-                                    conf >= 0.75
-                                      ? "#22c55e"
-                                      : conf >= 0.4
-                                      ? "#f59e0b"
-                                      : "#ef4444",
-                                }}
-                              />
-                            </div>
-                            <span className="confidence-pct">
-                              {(conf * 100).toFixed(0)}%
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="source-no-data">No Data</span>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Recommendation */}
-                {verificationResult.recommendation && (
-                  <p className="verification-recommendation">
-                    {verificationResult.recommendation}
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* Warning box */}
-            <div className="confirm-warning-box">
-              <span className="material-symbols-outlined">info</span>
-              <div>
-                <strong className="confirm-warning-title">
-                  Warning: This action is irreversible
-                </strong>
-                <p className="confirm-warning-text">
-                  Once approved, payment will be released to the farmer via
-                  blockchain smart contract. This transaction cannot be reversed
-                  or cancelled.
-                </p>
-              </div>
-            </div>
-            <div className="confirm-checklist">
-              <label className="confirm-checkbox">
-                <input type="checkbox" required />I confirm this decision based
-                on the evidence above
-              </label>
-            </div>
-          </div>
-        )}
-      </ConfirmDialog>
     </div>
   );
 };

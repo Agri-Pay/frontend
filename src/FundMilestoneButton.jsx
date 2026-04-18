@@ -11,9 +11,45 @@ import {
   USDT_DECIMALS,
 } from "./constants/contracts";
 
+// Oracle server URL — set VITE_ORACLE_URL in your .env to override
+const ORACLE_URL = import.meta.env.VITE_ORACLE_URL || "https://filme-secrets-extension-stick.trycloudflare.com";
+
 export const FundMilestoneButton = ({ milestone, farm }) => {
   const { loggedIn, login, provider, loading: authLoading, initialized } = useWeb3Auth();
   const [funding, setFunding] = useState(false);
+  const [released, setReleased] = useState(false);
+
+  // Called when funds are already deposited in escrow but oracle release failed.
+  // Skips all on-chain deposit steps and only pings the oracle.
+  const handleOracleRelease = async () => {
+    try {
+      setFunding(true);
+      toast.loading("Releasing funds to farmer...", { id: "fund-toast" });
+      const oracleRes = await fetch(`${ORACLE_URL}/api/v1/oracle/release`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ milestone_id: milestone.id }),
+      });
+
+      if (!oracleRes.ok) {
+        const errBody = await oracleRes.text();
+        throw new Error(`Oracle release failed: ${errBody}`);
+      }
+
+      const oracleData = await oracleRes.json();
+      console.log("Oracle release response:", oracleData);
+      toast.success(
+        oracleData.mock ? "Funds released (mock mode)!" : "Funds released to farmer's wallet!",
+        { id: "fund-toast", duration: 5000 }
+      );
+      setReleased(true); // hide button immediately without waiting for realtime
+    } catch (err) {
+      console.error(err);
+      toast.error("Release failed: " + (err.reason || err.message), { id: "fund-toast" });
+    } finally {
+      setFunding(false);
+    }
+  };
 
   const handleFund = async () => {
     if (!initialized) {
@@ -78,14 +114,13 @@ export const FundMilestoneButton = ({ milestone, farm }) => {
       const depositTx = await escrowContract.deposit(milestoneIdBytes, farmerAddress, amountToFund);
       const receipt   = await depositTx.wait();
 
-      toast.success("Milestone funded successfully!", { id: "fund-toast" });
       console.log("Deposit tx:", receipt.transactionHash);
 
       // Record the on-chain transaction in the DB
       const { error: txErr } = await supabase.from("transactions").insert({
         cycle_milestone_id: milestone.id,
         tx_hash: receipt.transactionHash,
-        amount: milestone.amount, // stored in paisa, matches cycle_milestones.amount
+        amount: milestone.amount,
         status: "confirmed",
         blockchain_network: "sepolia",
         gas_fee_wei: receipt.gasUsed.mul(receipt.effectiveGasPrice).toString(),
@@ -94,11 +129,14 @@ export const FundMilestoneButton = ({ milestone, farm }) => {
       });
       if (txErr) console.error("Failed to save transaction:", txErr);
 
-      // Mark milestone as funded in DB so UI updates live
+      // Mark milestone as processing so UI reflects the ongoing release step
       await supabase
         .from("cycle_milestones")
-        .update({ payment_status: "funded", updated_at: new Date().toISOString() })
+        .update({ payment_status: "processing", updated_at: new Date().toISOString() })
         .eq("id", milestone.id);
+
+      // Step 4: Immediately instruct the oracle to release funds.
+      await handleOracleRelease();
 
     } catch (err) {
       console.error(err);
@@ -108,26 +146,33 @@ export const FundMilestoneButton = ({ milestone, farm }) => {
     }
   };
 
-  if (milestone.payment_status === "paid") {
+  if (milestone.payment_status === "paid" || released) {
     return null;
   }
 
-  if (milestone.payment_status === "funded") {
+  // Funds are already deposited in the escrow (processing state) but the oracle
+  // release step failed previously. Show a retry button that only calls the oracle.
+  if (milestone.payment_status === "funded" || milestone.payment_status === "processing") {
     return (
-      <div
+      <button
+        onClick={handleOracleRelease}
+        disabled={funding}
         style={{
           marginTop: "8px",
           padding: "4px 8px",
           borderRadius: "4px",
-          background: "#ede9fe",
-          color: "#6d28d9",
+          background: funding ? "#94a3b8" : "#7c3aed",
+          color: "white",
+          border: "none",
+          cursor: funding ? "not-allowed" : "pointer",
           fontSize: "12px",
-          textAlign: "center",
-          border: "1px solid #c4b5fd",
+          display: "block",
+          width: "100%",
+          opacity: funding ? 0.7 : 1,
         }}
       >
-        Funded · Awaiting Release
-      </div>
+        {funding ? "Releasing..." : "Retry Release"}
+      </button>
     );
   }
 
