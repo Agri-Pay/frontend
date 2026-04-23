@@ -51,16 +51,82 @@ export async function analyzeByFilename(
 
 /**
  * Upload a file and start analysis (browser upload flow).
+ *
+ * Uses XMLHttpRequest instead of fetch() so:
+ *   1. Upload progress is reported via onProgress({ percent, loaded, total })
+ *   2. Large files (100+ MB) stream to the server instead of buffering
+ *   3. The request won't silently time out in the browser
+ *
+ * @param {File} file
+ * @param {string} [modelId]
+ * @param {function} [onProgress]  called with { percent, loaded, total }
  */
-export async function uploadAndAnalyze(file) {
+export function uploadAndAnalyze(file, modelId = "wheat_plant_counter_v1", onProgress = null) {
+  return new Promise((resolve, reject) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("model_id", modelId);
+
+    const xhr = new XMLHttpRequest();
+
+    if (onProgress) {
+      xhr.upload.addEventListener("progress", (e) => {
+        if (e.lengthComputable) {
+          onProgress({
+            percent: Math.round((e.loaded / e.total) * 100),
+            loaded: e.loaded,
+            total: e.total,
+          });
+        }
+      });
+    }
+
+    xhr.addEventListener("load", () => {
+      try {
+        const data = JSON.parse(xhr.responseText);
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(data);
+        } else {
+          reject(new Error(data.detail || `Upload failed (HTTP ${xhr.status})`));
+        }
+      } catch {
+        reject(new Error(`Upload failed (HTTP ${xhr.status})`));
+      }
+    });
+
+    xhr.addEventListener("error", () =>
+      reject(new Error("Network error — check your connection and that the compute server is reachable."))
+    );
+    xhr.addEventListener("abort", () =>
+      reject(new Error("Upload was cancelled."))
+    );
+
+    xhr.open("POST", `${COMPUTE_API}/upload`);
+    xhr.timeout = 0; // no timeout — large files take a while
+    xhr.send(formData);
+  });
+}
+
+/**
+ * Submit analysis for an image by Google Drive URL (or any public HTTPS URL).
+ * The server will download the file itself — nothing is uploaded from the browser.
+ *
+ * @param {string} imageUrl  Google Drive share link or direct image URL
+ * @param {string} [modelId]
+ */
+export async function analyzeFromUrl(imageUrl, modelId = "wheat_plant_counter_v1") {
   const formData = new FormData();
-  formData.append("file", file);
+  formData.append("image_url", imageUrl);
+  formData.append("model_id", modelId);
+
   const res = await fetch(`${COMPUTE_API}/upload`, {
     method: "POST",
     body: formData,
   });
-  if (!res.ok)
-    throw new Error("Upload failed. Is the compute server running?");
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `Request failed (HTTP ${res.status})`);
+  }
   return res.json(); // { job_id, status, progress, message }
 }
 

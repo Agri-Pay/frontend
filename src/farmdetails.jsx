@@ -291,6 +291,7 @@ ChartJS.register(
 import Spinner from "./spinner";
 import {
   uploadAndAnalyze,
+  analyzeFromUrl,
   getJobStatus as getComputeJobStatus,
   getResultImageBlob,
   saveResults as saveComputeResults,
@@ -450,10 +451,13 @@ const FarmDetailsPage = () => {
   const [verificationError, setVerificationError] = useState(null);
 
   // --- Plant Counter AI State ---
+  const [pcInputMode, setPcInputMode] = useState("file"); // "file" | "drive"
   const [pcFile, setPcFile] = useState(null);
+  const [pcDriveUrl, setPcDriveUrl] = useState("");
   const [pcJobId, setPcJobId] = useState(null);
   const [pcStatus, setPcStatus] = useState("idle"); // idle | uploading | processing | completed | failed
   const [pcProgress, setPcProgress] = useState(0);
+  const [pcUploadProgress, setPcUploadProgress] = useState(0); // XHR upload % (0-100)
   const [pcMessage, setPcMessage] = useState("");
   const [pcResult, setPcResult] = useState(null);
   const [pcOutputType, setPcOutputType] = useState("counting");
@@ -823,7 +827,88 @@ const FarmDetailsPage = () => {
       toast.error("Error starting cycle");
     }
   };
+  // Maps each payable milestone name to the growth stage input keys
+  // that must be filled (with a stage_date) before it can be submitted.
+  const MILESTONE_REQUIRED_STAGES = {
+    "Sowing":                     ["sowing"],
+    "Tillering":                  ["sowing", "tillering"],
+    "Grain Filling and Ripening": ["sowing", "tillering", "grain_filling"],
+  };
+
+  const STAGE_LABELS = {
+    sowing:        "Sowing",
+    tillering:     "Tillering",
+    grain_filling: "Grain Filling",
+  };
+
   const handleStatusChange = async (milestoneId, newStatus) => {
+    // Apply guards only when the farmer marks a milestone as complete
+    if (newStatus === MILESTONE_STATUS.PENDING_VERIFICATION) {
+      const targetMilestone = cycleMilestones.find((m) => m.id === milestoneId);
+
+      // ── Guard 1: Sequential milestone completion ──────────────────
+      if (targetMilestone) {
+        const targetSeq = targetMilestone.milestone_templates?.sequence ?? 0;
+        const blockedBy = cycleMilestones.find((m) => {
+          const seq = m.milestone_templates?.sequence ?? 0;
+          const status = m.status || "";
+          return (
+            seq < targetSeq &&
+            status !== MILESTONE_STATUS.VERIFIED &&
+            status !== "verified"
+          );
+        });
+        if (blockedBy) {
+          const blockedName =
+            blockedBy.milestone_templates?.name ||
+            `Milestone ${blockedBy.milestone_templates?.sequence}`;
+          toast.error(
+            `Complete "${blockedName}" first before marking this milestone as complete.`
+          );
+          return;
+        }
+      }
+
+      // ── Guard 2: Required growth stage inputs must be filled ──────
+      const milestoneName = targetMilestone?.milestone_templates?.name;
+      const requiredStages = MILESTONE_REQUIRED_STAGES[milestoneName];
+
+      if (requiredStages?.length > 0 && activeCycle?.id) {
+        try {
+          const { data: stageRows, error: stageErr } = await supabase
+            .from("growth_stage_inputs")
+            .select("stage_name, stage_date")
+            .eq("crop_cycle_id", activeCycle.id)
+            .in("stage_name", requiredStages);
+
+          if (stageErr) throw stageErr;
+
+          const filledStages = new Set(
+            (stageRows || [])
+              .filter((r) => r.stage_date)
+              .map((r) => r.stage_name)
+          );
+
+          const missingStages = requiredStages.filter(
+            (s) => !filledStages.has(s)
+          );
+
+          if (missingStages.length > 0) {
+            const missingLabels = missingStages
+              .map((s) => STAGE_LABELS[s] || s)
+              .join(", ");
+            toast.error(
+              `Please fill in the "${missingLabels}" growth stage input log before marking this milestone as complete.`
+            );
+            return;
+          }
+        } catch (err) {
+          console.error("Growth stage check error:", err);
+          // Non-blocking: allow the update if the check fails transiently
+        }
+      }
+    }
+
     try {
       // Direct database update - triggers will handle notifications
       const { error } = await supabase
@@ -851,10 +936,11 @@ const FarmDetailsPage = () => {
 
   // --- Plant Counter AI Handlers ---
   const handlePcFile = (file) => {
-    if (!file || !file.type.startsWith("image/")) {
-      toast.error("Please select an image file.");
+    if (!file || !file.type.startsWith("image/") && !file.name.match(/\.(tif|tiff|png|jpg|jpeg)$/i)) {
+      toast.error("Please select a PNG, TIFF, or JPEG image file.");
       return;
     }
+    setPcInputMode("file");
     setPcFile(file);
     setPcStatus("idle");
     setPcResult(null);
@@ -872,16 +958,31 @@ const FarmDetailsPage = () => {
   };
 
   const startPlantCounting = async () => {
-    if (!pcFile) return;
+    const isDrive = pcInputMode === "drive";
+    if (!isDrive && !pcFile) return;
+    if (isDrive && !pcDriveUrl.trim()) {
+      toast.error("Please paste a Google Drive or image URL.");
+      return;
+    }
     if (pcPollRef.current) clearInterval(pcPollRef.current);
     setPcStatus("uploading");
     setPcProgress(0);
-    setPcMessage("Uploading image...");
+    setPcUploadProgress(0);
+    setPcMessage(isDrive ? "Server is downloading image from Drive..." : "Uploading image...");
     setPcResult(null);
     if (pcImageUrl) { URL.revokeObjectURL(pcImageUrl); setPcImageUrl(null); }
 
     try {
-      const { job_id } = await uploadAndAnalyze(pcFile);
+      let job_id;
+      if (isDrive) {
+        ({ job_id } = await analyzeFromUrl(pcDriveUrl.trim()));
+      } else {
+        ({ job_id } = await uploadAndAnalyze(
+          pcFile,
+          "wheat_plant_counter_v1",
+          ({ percent }) => setPcUploadProgress(percent),
+        ));
+      }
       setPcJobId(job_id);
       setPcStatus("processing");
 
@@ -1424,8 +1525,28 @@ const FarmDetailsPage = () => {
               </div>
             </div>
 
-            {/* Upload Zone */}
+            {/* Source tabs */}
             {(pcStatus === "idle" || pcStatus === "failed") && (
+              <div className="pc-source-tabs">
+                <button
+                  className={`pc-source-tab ${pcInputMode === "file" ? "active" : ""}`}
+                  onClick={() => { setPcInputMode("file"); setPcDriveUrl(""); }}
+                >
+                  <span className="material-symbols-outlined">upload_file</span>
+                  Upload File
+                </button>
+                <button
+                  className={`pc-source-tab ${pcInputMode === "drive" ? "active" : ""}`}
+                  onClick={() => { setPcInputMode("drive"); setPcFile(null); if (pcOriginalUrl) { URL.revokeObjectURL(pcOriginalUrl); setPcOriginalUrl(null); } }}
+                >
+                  <span className="material-symbols-outlined">cloud</span>
+                  From Drive / URL
+                </button>
+              </div>
+            )}
+
+            {/* Upload Zone — file mode */}
+            {(pcStatus === "idle" || pcStatus === "failed") && pcInputMode === "file" && (
               <div
                 className={`pc-upload-zone ${pcDragOver ? "pc-drag-over" : ""} ${pcFile ? "pc-has-file" : ""}`}
                 onDragOver={(e) => { e.preventDefault(); setPcDragOver(true); }}
@@ -1433,7 +1554,7 @@ const FarmDetailsPage = () => {
                 onDrop={(e) => { e.preventDefault(); setPcDragOver(false); const f = e.dataTransfer.files[0]; if (f) handlePcFile(f); }}
                 onClick={() => document.getElementById("pc-file-input").click()}
               >
-                <input id="pc-file-input" type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => { if (e.target.files[0]) handlePcFile(e.target.files[0]); }} />
+                <input id="pc-file-input" type="file" accept="image/*,.tif,.tiff" style={{ display: "none" }} onChange={(e) => { if (e.target.files[0]) handlePcFile(e.target.files[0]); }} />
                 <span className="pc-upload-icon material-symbols-outlined">
                   {pcFile ? "check_circle" : "cloud_upload"}
                 </span>
@@ -1441,7 +1562,7 @@ const FarmDetailsPage = () => {
                   {pcFile ? pcFile.name : "Drag & drop an image, or click to browse"}
                 </p>
                 <p className="pc-upload-sub">
-                  {pcFile ? `${(pcFile.size / 1024 / 1024).toFixed(2)} MB — ready for analysis` : "Supports JPG, PNG, TIFF · Max 500 MB"}
+                  {pcFile ? `${(pcFile.size / 1024 / 1024).toFixed(2)} MB — ready for analysis` : "Supports JPG, PNG, TIFF · Max 10 GB"}
                 </p>
                 {pcStatus === "failed" && (
                   <div className="pc-error-banner">
@@ -1452,8 +1573,34 @@ const FarmDetailsPage = () => {
               </div>
             )}
 
+            {/* Upload Zone — drive/url mode */}
+            {(pcStatus === "idle" || pcStatus === "failed") && pcInputMode === "drive" && (
+              <div className="pc-drive-zone">
+                <span className="material-symbols-outlined pc-drive-icon">add_link</span>
+                <p className="pc-upload-title">Paste a Google Drive link or image URL</p>
+                <p className="pc-upload-sub">
+                  Share the file with <strong>Anyone with the link</strong>, then paste the URL below.
+                  The server downloads it directly — no browser upload needed.
+                </p>
+                <input
+                  className="pc-drive-input"
+                  type="url"
+                  placeholder="https://drive.google.com/file/d/… or https://example.com/image.tif"
+                  value={pcDriveUrl}
+                  onChange={(e) => { setPcDriveUrl(e.target.value); }}
+                  onKeyDown={(e) => { if (e.key === "Enter" && pcDriveUrl.trim()) startPlantCounting(); }}
+                />
+                {pcStatus === "failed" && (
+                  <div className="pc-error-banner" style={{ marginTop: "0.75rem" }}>
+                    <span className="material-symbols-outlined">error</span>
+                    <span>{pcMessage}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Analyze Button */}
-            {(pcStatus === "idle" || pcStatus === "failed") && pcFile && (
+            {(pcStatus === "idle" || pcStatus === "failed") && (pcFile || pcDriveUrl.trim()) && (
               <button className="pc-analyze-btn" onClick={startPlantCounting}>
                 <span className="material-symbols-outlined">play_arrow</span>
                 Run Analysis
@@ -1466,11 +1613,21 @@ const FarmDetailsPage = () => {
                 <div className="pc-status-label">
                   <span className="pc-spinner" />
                   <span>{pcMessage || "Processing..."}</span>
-                  <span className="pc-progress-pct-inline">{Math.round(pcProgress)}%</span>
+                  <span className="pc-progress-pct-inline">
+                    {pcStatus === "uploading" && pcInputMode === "file" && pcUploadProgress > 0
+                      ? `${pcUploadProgress}% uploaded`
+                      : `${Math.round(pcProgress)}%`}
+                  </span>
                 </div>
-                <div className="pc-progress-track">
-                  <div className="pc-progress-fill" style={{ width: `${pcProgress}%` }} />
-                </div>
+                {pcStatus === "uploading" && pcInputMode === "file" ? (
+                  <div className="pc-progress-track">
+                    <div className="pc-progress-fill" style={{ width: `${pcUploadProgress}%` }} />
+                  </div>
+                ) : (
+                  <div className="pc-progress-track">
+                    <div className="pc-progress-fill" style={{ width: `${pcProgress}%` }} />
+                  </div>
+                )}
               </div>
             )}
 
@@ -1530,7 +1687,8 @@ const FarmDetailsPage = () => {
                 </div>
 
                 <button className="pc-reset-btn" onClick={() => {
-                  setPcFile(null); setPcStatus("idle"); setPcResult(null);
+                  setPcFile(null); setPcDriveUrl(""); setPcInputMode("file");
+                  setPcStatus("idle"); setPcResult(null);
                   if (pcImageUrl) { URL.revokeObjectURL(pcImageUrl); setPcImageUrl(null); }
                   if (pcOriginalUrl) { URL.revokeObjectURL(pcOriginalUrl); setPcOriginalUrl(null); }
                 }}>

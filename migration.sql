@@ -71,7 +71,7 @@ BEGIN
       (wheat_crop_id, 'Sowing', 'Farm has been sown with certified seed', 1),
       (wheat_crop_id, 'Tillering', 'Crop has reached the tillering growth stage', 2),
       (wheat_crop_id, 'Grain Filling and Ripening', 'Crop is in the grain filling and ripening stage', 3)
-    ON CONFLICT DO NOTHING;
+    ON CONFLICT (crop_id, name) DO NOTHING;
   END IF;
 END $$;
 

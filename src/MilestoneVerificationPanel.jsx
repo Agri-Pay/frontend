@@ -3,6 +3,37 @@ import React, { useMemo } from "react";
 import "./MilestoneVerificationPanel.css";
 import DroneImagerySection from "./DroneImagerySection";
 
+// ── Wheat milestone-specific expected ranges ──────────────────────────────
+// Mirrors wheat_thresholds.py in the backend (Punjab Pakistan, Rabi season).
+// Key: lowercased, underscored milestone name
+const WHEAT_THRESHOLDS = {
+  sowing: {
+    ndvi:         { label: "NDVI",          range: [0.06, 0.20], unit: "" },
+    savi:         { label: "SAVI",          range: [0.04, 0.16], unit: "" },
+    soil_temp:    { label: "Soil Temp",     range: [18,   28],   unit: "°C" },
+    soil_moisture:{ label: "Soil Moisture", range: [28,   55],   unit: "%" },
+  },
+  tillering: {
+    ndvi:         { label: "NDVI",          range: [0.35, 0.62], unit: "" },
+    savi:         { label: "SAVI",          range: [0.26, 0.50], unit: "" },
+    lai:          { label: "LAI",           range: [0.8,  3.0],  unit: "" },
+    soil_temp:    { label: "Soil Temp",     range: [10,   20],   unit: "°C" },
+    soil_moisture:{ label: "Soil Moisture", range: [30,   55],   unit: "%" },
+  },
+  grain_filling_and_ripening: {
+    ndvi:         { label: "NDVI",          range: [0.40, 0.82], unit: "" },
+    lai:          { label: "LAI",           range: [2.0,  7.0],  unit: "" },
+    ndmi:         { label: "NDMI",          range: [-0.05, 0.50],unit: "" },
+    soil_temp:    { label: "Soil Temp",     range: [15,   30],   unit: "°C" },
+    soil_moisture:{ label: "Soil Moisture", range: [20,   52],   unit: "%" },
+  },
+};
+
+// Normalize milestone name to threshold key
+function toThresholdKey(milestoneName) {
+  return (milestoneName || "").toLowerCase().replace(/ /g, "_");
+}
+
 // ── Utility helpers ───────────────────────────────────────────────
 const isValid = (v) =>
   v !== null && v !== undefined && !isNaN(v) && isFinite(v);
@@ -144,6 +175,213 @@ function MetricCard({ icon, label, value, badge, badgeColor }) {
           </span>
         )}
       </div>
+    </div>
+  );
+}
+
+// ── Verification breakdown component ────────────────────────────
+// Renders per-source confidence bars + metric range table
+// from the result returned by /api/v1/verify-milestone.
+function VerificationBreakdown({ result, milestoneName }) {
+  if (!result) return null;
+
+  const thresholdKey = toThresholdKey(milestoneName);
+  const thresholds  = WHEAT_THRESHOLDS[thresholdKey] || {};
+
+  // Source confidence bars
+  const sources = [
+    {
+      key:    "satellite",
+      label:  "Satellite",
+      icon:   "satellite_alt",
+      data:   result.satellite_analysis,
+    },
+    {
+      key:    "iot",
+      label:  "IoT Sensors",
+      icon:   "sensors",
+      data:   result.iot_analysis,
+    },
+    {
+      key:    "farmer_input",
+      label:  "Farmer Input",
+      icon:   "assignment_ind",
+      data:   result.farmer_input_analysis,
+    },
+    {
+      key:    "drone",
+      label:  "Drone",
+      icon:   "flight",
+      data:   result.drone_analysis,
+    },
+  ];
+
+  // Build metric rows to show actual vs expected ranges
+  const metricRows = [];
+
+  // From satellite analysis
+  const sat = result.satellite_analysis || {};
+  if (isValid(sat.ndvi_current) && thresholds.ndvi) {
+    const { range } = thresholds.ndvi;
+    const inRange = sat.ndvi_current >= range[0] && sat.ndvi_current <= range[1];
+    metricRows.push({
+      source: "Satellite",
+      label: "NDVI",
+      value: fmt(sat.ndvi_current),
+      range: `${range[0].toFixed(2)} – ${range[1].toFixed(2)}`,
+      inRange,
+    });
+  }
+  if (isValid(sat.savi_current) && thresholds.savi) {
+    const { range } = thresholds.savi;
+    const inRange = sat.savi_current >= range[0] && sat.savi_current <= range[1];
+    metricRows.push({
+      source: "Satellite",
+      label: "SAVI",
+      value: fmt(sat.savi_current),
+      range: `${range[0].toFixed(2)} – ${range[1].toFixed(2)}`,
+      inRange,
+    });
+  }
+  if (isValid(sat.lai_current) && thresholds.lai) {
+    const { range } = thresholds.lai;
+    const inRange = sat.lai_current >= range[0] && sat.lai_current <= range[1];
+    metricRows.push({
+      source: "Satellite",
+      label: "LAI",
+      value: fmt(sat.lai_current, 2),
+      range: `${range[0]} – ${range[1]}`,
+      inRange,
+    });
+  }
+  if (isValid(sat.ndmi_current) && thresholds.ndmi) {
+    const { range } = thresholds.ndmi;
+    const inRange = sat.ndmi_current >= range[0] && sat.ndmi_current <= range[1];
+    metricRows.push({
+      source: "Satellite",
+      label: "NDMI",
+      value: fmt(sat.ndmi_current),
+      range: `${range[0].toFixed(2)} – ${range[1].toFixed(2)}`,
+      inRange,
+    });
+  }
+
+  // From IoT analysis
+  const iot = result.iot_analysis || {};
+  const sensorMeans = iot.sensor_means || {};
+  if (isValid(sensorMeans.soil_temperature) && thresholds.soil_temp) {
+    const { range } = thresholds.soil_temp;
+    const v = sensorMeans.soil_temperature;
+    metricRows.push({
+      source: "IoT",
+      label: "Soil Temp",
+      value: `${fmt(v, 1)}°C`,
+      range: `${range[0]}–${range[1]}°C`,
+      inRange: v >= range[0] && v <= range[1],
+    });
+  }
+  if (isValid(sensorMeans.soil_moisture) && thresholds.soil_moisture) {
+    const { range } = thresholds.soil_moisture;
+    const v = sensorMeans.soil_moisture;
+    metricRows.push({
+      source: "IoT",
+      label: "Soil Moisture",
+      value: `${fmt(v, 1)}%`,
+      range: `${range[0]}–${range[1]}%`,
+      inRange: v >= range[0] && v <= range[1],
+    });
+  }
+
+  // From farmer input analysis
+  const fi = result.farmer_input_analysis || {};
+  if (fi.stages_required) {
+    fi.stages_required.forEach((stage) => {
+      const filled = (fi.stages_found || []).includes(stage);
+      metricRows.push({
+        source: "Farmer",
+        label: stage.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+        value: filled ? "Filled ✓" : "Missing ✗",
+        range: "Required",
+        inRange: filled,
+      });
+    });
+  }
+
+  // From drone analysis
+  const drone = result.drone_analysis || {};
+  if (isValid(drone.ndvi_mean)) {
+    const dKey = thresholdKey === "sowing" ? [0.04, 0.20] :
+                 thresholdKey === "tillering" ? [0.32, 0.62] : [0.35, 0.82];
+    metricRows.push({
+      source: "Drone",
+      label: "NDVI (layer)",
+      value: fmt(drone.ndvi_mean),
+      range: `${dKey[0].toFixed(2)} – ${dKey[1].toFixed(2)}`,
+      inRange: drone.ndvi_mean >= dKey[0] && drone.ndvi_mean <= dKey[1],
+    });
+  }
+
+  return (
+    <div className="mvp-verification-breakdown">
+      {/* Per-source confidence bars */}
+      <div className="mvp-source-bars">
+        {sources.map(({ key, label, icon, data }) => {
+          const conf  = data?.confidence;
+          const status = data?.status;
+          const hasData = status === "ANALYZED" && isValid(conf);
+          const pct   = hasData ? Math.round(conf * 100) : 0;
+          const color = pct >= 75 ? "#22c55e" : pct >= 40 ? "#eab308" : "#ef4444";
+          return (
+            <div key={key} className="mvp-source-bar-row">
+              <span className="material-symbols-outlined mvp-source-icon">{icon}</span>
+              <span className="mvp-source-label">{label}</span>
+              <div className="mvp-source-bar-track">
+                {hasData ? (
+                  <div
+                    className="mvp-source-bar-fill"
+                    style={{ width: `${pct}%`, backgroundColor: color }}
+                  />
+                ) : (
+                  <div className="mvp-source-bar-nodata" />
+                )}
+              </div>
+              <span className="mvp-source-pct" style={{ color: hasData ? color : "#94a3b8" }}>
+                {hasData ? `${pct}%` : "No data"}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Metric range table */}
+      {metricRows.length > 0 && (
+        <div className="mvp-metric-table">
+          <div className="mvp-metric-table-header">
+            <span>Source</span>
+            <span>Metric</span>
+            <span>Value</span>
+            <span>Expected Range</span>
+            <span>Status</span>
+          </div>
+          {metricRows.map((row, i) => (
+            <div key={i} className="mvp-metric-table-row">
+              <span className="mvp-mtr-source">{row.source}</span>
+              <span className="mvp-mtr-label">{row.label}</span>
+              <span className="mvp-mtr-value">{row.value}</span>
+              <span className="mvp-mtr-range">{row.range}</span>
+              <span
+                className="mvp-mtr-badge"
+                style={{
+                  backgroundColor: row.inRange ? "#dcfce7" : "#fee2e2",
+                  color:           row.inRange ? "#16a34a" : "#dc2626",
+                }}
+              >
+                {row.inRange ? "In Range" : "Out of Range"}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -578,20 +816,22 @@ const MilestoneVerificationPanel = ({
               {verificationResult && (
                 <div
                   className={`mvp-ml-result ${
-                    verificationResult.verdict === "MILESTONE_PASSED"
+                    verificationResult.verdict === "MILESTONE_COMPLETE"
                       ? "mvp-ml-pass"
                       : "mvp-ml-fail"
                   }`}
                 >
                   <span className="material-symbols-outlined">
-                    {verificationResult.verdict === "MILESTONE_PASSED"
+                    {verificationResult.verdict === "MILESTONE_COMPLETE"
                       ? "check_circle"
                       : "cancel"}
                   </span>
                   <div>
                     <p className="mvp-ml-verdict">
-                      {verificationResult.verdict === "MILESTONE_PASSED"
+                      {verificationResult.verdict === "MILESTONE_COMPLETE"
                         ? "Milestone Passed"
+                        : verificationResult.verdict === "MANUAL_REVIEW_REQUIRED"
+                        ? "Manual Review Required"
                         : "Milestone Failed"}
                     </p>
                     {verificationResult.overall_confidence && (
@@ -603,6 +843,20 @@ const MilestoneVerificationPanel = ({
                       <p className="mvp-ml-rec">{verificationResult.recommendation}</p>
                     )}
                   </div>
+                </div>
+              )}
+
+              {/* ── Wheat verification metrics breakdown ── */}
+              {verificationResult && (
+                <div className="mvp-breakdown-section">
+                  <p className="mvp-breakdown-title">
+                    <span className="material-symbols-outlined">bar_chart</span>
+                    Verification Breakdown
+                  </p>
+                  <VerificationBreakdown
+                    result={verificationResult}
+                    milestoneName={milestoneName}
+                  />
                 </div>
               )}
             </div>
