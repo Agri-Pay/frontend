@@ -200,20 +200,20 @@ export const getExpressionPreviewUrl = (filename, expression, options = {}) => {
  *   Band 10: NIR (842nm)
  */
 export const LAYER_CONFIGS = {
-  // === Band Composites ===
+  // === Band Composites (10-band MicaSense RedEdge-MX Dual) ===
   rgb: {
     name: "True Color (RGB)",
     description: "Red, Green, Blue composite",
-    bidx: "5,3,1", // Red-650, Green-531, Blue-444
-    rescale: "0,10000", // Based on percentile_2 to percentile_98 from stats
+    bidx: "6,4,2", // Red-668(b6), Green-560(b4), Blue-475(b2) — primary wavelength bands
+    rescale: "0,10000",
     colormap: null,
     expression: null,
-    nodata: 65535, // MicaSense uses 65535 as nodata/fill value
+    nodata: 65535,
   },
   cir: {
     name: "False Color (CIR)",
     description: "Color Infrared - vegetation appears red",
-    bidx: "10,5,3", // NIR, Red-650, Green-531
+    bidx: "10,6,4", // NIR(b10), Red-668(b6), Green-560(b4)
     rescale: "0,15000",
     colormap: null,
     expression: null,
@@ -222,14 +222,14 @@ export const LAYER_CONFIGS = {
   nrg: {
     name: "NIR-RedEdge-Green",
     description: "Highlights vegetation stress",
-    bidx: "10,7,3", // NIR, Red Edge 705, Green-531
+    bidx: "10,8,4", // NIR(b10), Red Edge 717(b8), Green-560(b4)
     rescale: "0,15000",
     colormap: null,
     expression: null,
     nodata: 65535,
   },
 
-  // === Individual Bands ===
+  // === Individual Bands (10-band) ===
   blue444: {
     name: "Blue 444nm",
     description: "444nm - Deep Blue",
@@ -252,7 +252,7 @@ export const LAYER_CONFIGS = {
     name: "Green 531nm",
     description: "531nm - Green",
     bidx: "3",
-    rescale: "500,5000",
+    rescale: "500,7000",
     colormap: "greens",
     expression: null,
     nodata: 65535,
@@ -261,7 +261,7 @@ export const LAYER_CONFIGS = {
     name: "Green 560nm",
     description: "560nm - Green",
     bidx: "4",
-    rescale: "500,5000",
+    rescale: "500,7000",
     colormap: "greens",
     expression: null,
     nodata: 65535,
@@ -321,15 +321,15 @@ export const LAYER_CONFIGS = {
     nodata: 65535,
   },
 
-  // === Computed Indices ===
+  // === Computed Indices (10-band) ===
   ndvi: {
     name: "NDVI",
     description: "Normalized Difference Vegetation Index",
     bidx: null,
     rescale: "-0.5,1",
     colormap: "rdylgn",
-    expression: "(b10-b5)/(b10+b5)", // (NIR - Red650) / (NIR + Red650)
-    nodata: 65535, // Mask nodata pixels for transparency
+    expression: "(b10-b6)/(b10+b6)", // (NIR-b10 - Red668-b6) / (NIR-b10 + Red668-b6)
+    nodata: 65535,
   },
   ndre: {
     name: "NDRE",
@@ -337,8 +337,8 @@ export const LAYER_CONFIGS = {
     bidx: null,
     rescale: "-0.5,1",
     colormap: "rdylgn",
-    expression: "(b10-b7)/(b10+b7)", // (NIR - RedEdge705) / (NIR + RedEdge705)
-    nodata: 65535, // Mask nodata pixels for transparency
+    expression: "(b10-b8)/(b10+b8)", // (NIR-b10 - RedEdge717-b8) / (NIR-b10 + RedEdge717-b8)
+    nodata: 65535,
   },
   gndvi: {
     name: "GNDVI",
@@ -346,8 +346,8 @@ export const LAYER_CONFIGS = {
     bidx: null,
     rescale: "-0.5,1",
     colormap: "rdylgn",
-    expression: "(b10-b3)/(b10+b3)", // (NIR - Green531) / (NIR + Green531)
-    nodata: 65535, // Mask nodata pixels for transparency
+    expression: "(b10-b4)/(b10+b4)", // (NIR-b10 - Green560-b4) / (NIR-b10 + Green560-b4)
+    nodata: 65535,
   },
 
   // === Legacy configs (for backwards compatibility) ===
@@ -372,6 +372,122 @@ export const LAYER_CONFIGS = {
     bidx: null,
     expression: null,
   },
+};
+
+/**
+ * Layer configurations for 5-band MicaSense RedEdge (standard camera)
+ * Band order: b1=Blue/475nm, b2=Green/560nm, b3=Red/668nm, b4=RedEdge/717nm, b5=NIR/840nm
+ */
+export const LAYER_CONFIGS_5BAND = {
+  // === Band Composites ===
+  rgb: {
+    name: "True Color (RGB)",
+    description: "Red, Green, Blue composite",
+    bidx: "3,2,1", // Red-668(b3), Green-560(b2), Blue-475(b1)
+    rescale: "0,10000",
+    colormap: null,
+    expression: null,
+    nodata: 65535,
+  },
+  cir: {
+    name: "False Color (CIR)",
+    description: "Color Infrared - vegetation appears red",
+    bidx: "5,3,2", // NIR(b5), Red-668(b3), Green-560(b2)
+    rescale: "0,15000",
+    colormap: null,
+    expression: null,
+    nodata: 65535,
+  },
+  nrg: {
+    name: "NIR-RedEdge-Green",
+    description: "Highlights vegetation stress",
+    bidx: "5,4,2", // NIR(b5), RedEdge-717(b4), Green-560(b2)
+    rescale: "0,15000",
+    colormap: null,
+    expression: null,
+    nodata: 65535,
+  },
+
+  // === Individual Bands (5-band) ===
+  blue: {
+    name: "Blue 475nm",
+    description: "475nm - Blue",
+    bidx: "1",
+    rescale: "500,5000",
+    colormap: "blues",
+    expression: null,
+    nodata: 65535,
+  },
+  green: {
+    name: "Green 560nm",
+    description: "560nm - Green",
+    bidx: "2",
+    rescale: "500,7000",
+    colormap: "greens",
+    expression: null,
+    nodata: 65535,
+  },
+  red: {
+    name: "Red 668nm",
+    description: "668nm - Red",
+    bidx: "3",
+    rescale: "500,8000",
+    colormap: "reds",
+    expression: null,
+    nodata: 65535,
+  },
+  rededge: {
+    name: "Red Edge 717nm",
+    description: "717nm - Red Edge",
+    bidx: "4",
+    rescale: "500,10000",
+    colormap: "oranges",
+    expression: null,
+    nodata: 65535,
+  },
+  nir: {
+    name: "NIR 840nm",
+    description: "840nm - Near Infrared",
+    bidx: "5",
+    rescale: "500,15000",
+    colormap: "purples",
+    expression: null,
+    nodata: 65535,
+  },
+
+  // === Computed Indices (5-band) ===
+  ndvi: {
+    name: "NDVI",
+    description: "Normalized Difference Vegetation Index",
+    bidx: null,
+    rescale: "-0.5,1",
+    colormap: "rdylgn",
+    expression: "(b5-b3)/(b5+b3)", // (NIR-b5 - Red668-b3) / (NIR-b5 + Red668-b3)
+    nodata: 65535,
+  },
+  ndre: {
+    name: "NDRE",
+    description: "Normalized Difference Red Edge Index",
+    bidx: null,
+    rescale: "-0.5,1",
+    colormap: "rdylgn",
+    expression: "(b5-b4)/(b5+b4)", // (NIR-b5 - RedEdge717-b4) / (NIR-b5 + RedEdge717-b4)
+    nodata: 65535,
+  },
+  gndvi: {
+    name: "GNDVI",
+    description: "Green Normalized Difference Vegetation Index",
+    bidx: null,
+    rescale: "-0.5,1",
+    colormap: "rdylgn",
+    expression: "(b5-b2)/(b5+b2)", // (NIR-b5 - Green560-b2) / (NIR-b5 + Green560-b2)
+    nodata: 65535,
+  },
+
+  // === Legacy compatibility ===
+  moisture: { name: "Moisture", colormap: "blues", rescale: "0,1", bidx: null, expression: null },
+  thermal:  { name: "Thermal",  colormap: "inferno", rescale: "20,45", bidx: null, expression: null },
+  lai:      { name: "LAI",      colormap: "greens", rescale: "0,8", bidx: null, expression: null },
 };
 
 /**

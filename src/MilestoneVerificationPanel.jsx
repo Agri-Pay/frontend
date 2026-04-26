@@ -488,6 +488,10 @@ const MilestoneVerificationPanel = ({
               <span className="material-symbols-outlined">monitor_heart</span>
               Crop Health Index
             </div>
+            <p className="mvp-section-note">
+              General crop health based on live satellite data — not milestone-specific.
+              Run Verification below for milestone-specific analysis.
+            </p>
 
             {healthIndex ? (
               <div

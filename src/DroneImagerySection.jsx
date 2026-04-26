@@ -18,6 +18,7 @@ import {
   getPointValue,
   checkHealth,
   LAYER_CONFIGS,
+  LAYER_CONFIGS_5BAND,
   isLocalMode,
   isTiTilerConfigured,
   computeVegetationIndices,
@@ -104,6 +105,13 @@ const DroneImagerySection = ({ farmId, farmName = "Farm", cropType = null }) => 
   const [selectedLayers, setSelectedLayers] = useState(["rgb"]); // Array of selected layer types
   const [layerDropdownOpen, setLayerDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
+
+  // Returns the right LAYER_CONFIGS dict based on how many bands the file has.
+  // 5-band files use different band indices than 10-band files.
+  const getLayerConfigs = useCallback(() => {
+    const bandCount = selectedFlight?.bands?.length ?? 0;
+    return bandCount === 5 ? LAYER_CONFIGS_5BAND : LAYER_CONFIGS;
+  }, [selectedFlight]);
 
   // Upload state
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -803,7 +811,7 @@ const DroneImagerySection = ({ farmId, farmName = "Farm", cropType = null }) => 
     }
 
     // Get the layer configuration
-    const config = LAYER_CONFIGS[activeLayerType] || {};
+    const config = getLayerConfigs()[activeLayerType] || {};
     console.log("Active layer type:", activeLayerType, "Config:", config);
 
     // Get filename from bands or layers
@@ -834,7 +842,7 @@ const DroneImagerySection = ({ farmId, farmName = "Farm", cropType = null }) => 
       rescale: config.rescale,
       maxSize: 800,
     });
-  }, [selectedFlight, activeLayerType, farmId, serverOnline]);
+  }, [selectedFlight, activeLayerType, farmId, serverOnline, getLayerConfigs]);
 
   // Get filename for the current flight (used by tile URL and other functions)
   const getCurrentFilename = useCallback(() => {
@@ -859,7 +867,7 @@ const DroneImagerySection = ({ farmId, farmName = "Farm", cropType = null }) => 
     const filename = getCurrentFilename();
     if (!filename) return null;
 
-    const config = LAYER_CONFIGS[layerType] || {};
+    const config = getLayerConfigs()[layerType] || {};
 
     return getTileUrl(filename, {
       bidx: config.bidx,
@@ -868,7 +876,7 @@ const DroneImagerySection = ({ farmId, farmName = "Farm", cropType = null }) => 
       rescale: config.rescale,
       nodata: config.nodata, // Add nodata for transparency
     });
-  }, [selectedFlight, serverOnline, activeLayerType, getCurrentFilename]);
+  }, [selectedFlight, serverOnline, activeLayerType, getCurrentFilename, getLayerConfigs]);
 
   // Load bounds and statistics when flight/layer changes
   useEffect(() => {
@@ -966,14 +974,14 @@ const DroneImagerySection = ({ farmId, farmName = "Farm", cropType = null }) => 
     if (!selectedFlight || !serverOnline) return null;
 
     const filename = getFilename(selectedFlight, activeLayerType);
-    const config = LAYER_CONFIGS[activeLayerType] || {};
+    const config = getLayerConfigs()[activeLayerType] || {};
 
     return getPreviewUrl(filename, {
       colormap: config.colormap,
       rescale: config.rescale,
       maxSize: 800, // Higher resolution preview
     });
-  }, [selectedFlight, activeLayerType, serverOnline, getFilename]);
+  }, [selectedFlight, activeLayerType, serverOnline, getFilename, getLayerConfigs]);
 
   // Format date for display
   const formatDate = (dateStr) => {
@@ -989,12 +997,22 @@ const DroneImagerySection = ({ farmId, farmName = "Farm", cropType = null }) => 
   const getAvailableLayers = () => {
     if (!selectedFlight) return { composites: [], indices: [], bands: [] };
 
-    // If we have bands, show composite and index options
-    if (selectedFlight.bands && selectedFlight.bands.length >= 5) {
-      // For 10-band MicaSense, show all band options
+    const bandCount = selectedFlight?.bands?.length ?? 0;
+
+    if (bandCount === 5) {
+      // Standard 5-band MicaSense RedEdge: b1=Blue/475, b2=Green/560, b3=Red/668, b4=RE/717, b5=NIR/840
       return {
         composites: ["rgb", "cir", "nrg"],
-        indices: ["ndvi", "ndre", "gndvi"],
+        indices:    ["ndvi", "ndre", "gndvi"],
+        bands:      ["blue", "green", "red", "rededge", "nir"],
+      };
+    }
+
+    if (bandCount >= 10) {
+      // 10-band MicaSense RedEdge-MX Dual: b1-b10
+      return {
+        composites: ["rgb", "cir", "nrg"],
+        indices:    ["ndvi", "ndre", "gndvi"],
         bands: [
           "blue444", "blue",       // Blue bands (1, 2)
           "green531", "green",     // Green bands (3, 4)
@@ -1234,7 +1252,7 @@ const DroneImagerySection = ({ farmId, farmName = "Farm", cropType = null }) => 
               <span className="material-symbols-outlined">layers</span>
               <span className="dropdown-label">
                 {selectedLayers.length === 1
-                  ? LAYER_CONFIGS[selectedLayers[0]]?.name || selectedLayers[0]
+                  ? getLayerConfigs()[selectedLayers[0]]?.name || selectedLayers[0]
                   : `${selectedLayers.length} Layers Selected`}
               </span>
               <span className="material-symbols-outlined dropdown-arrow">
@@ -1252,7 +1270,7 @@ const DroneImagerySection = ({ farmId, farmName = "Farm", cropType = null }) => 
                       Band Composites
                     </div>
                     {getAvailableLayers().composites.map((layerType) => {
-                      const config = LAYER_CONFIGS[layerType] || { name: layerType };
+                      const config = getLayerConfigs()[layerType] || { name: layerType };
                       return (
                         <label key={layerType} className="layer-checkbox-item">
                           <input
@@ -1277,7 +1295,7 @@ const DroneImagerySection = ({ farmId, farmName = "Farm", cropType = null }) => 
                       Vegetation Indices
                     </div>
                     {getAvailableLayers().indices.map((layerType) => {
-                      const config = LAYER_CONFIGS[layerType] || { name: layerType };
+                      const config = getLayerConfigs()[layerType] || { name: layerType };
                       return (
                         <label key={layerType} className="layer-checkbox-item">
                           <input
@@ -1302,7 +1320,7 @@ const DroneImagerySection = ({ farmId, farmName = "Farm", cropType = null }) => 
                       Individual Bands
                     </div>
                     {getAvailableLayers().bands.map((layerType) => {
-                      const config = LAYER_CONFIGS[layerType] || { name: layerType };
+                      const config = getLayerConfigs()[layerType] || { name: layerType };
                       return (
                         <label key={layerType} className="layer-checkbox-item">
                           <input
@@ -1344,7 +1362,7 @@ const DroneImagerySection = ({ farmId, farmName = "Farm", cropType = null }) => 
           {selectedLayers.length > 0 && (
             <div className="selected-layers-tags">
               {selectedLayers.map((layerType, index) => {
-                const config = LAYER_CONFIGS[layerType] || { name: layerType };
+                const config = getLayerConfigs()[layerType] || { name: layerType };
                 return (
                   <span
                     key={layerType}
@@ -1438,28 +1456,64 @@ const DroneImagerySection = ({ farmId, farmName = "Farm", cropType = null }) => 
                 maxZoom={23}
                 maxNativeZoom={19}
               />
-              {/* Render all selected layers (stacked on top of each other) */}
-              {selectedLayers.map((layerType, index) => {
-                const layerTileUrl = buildTileUrl(layerType);
-                if (!layerTileUrl) return null;
-                return (
-                  <TileLayer
-                    key={layerType}
-                    url={layerTileUrl}
-                    opacity={layerOpacity}
-                    tms={false}
-                    maxZoom={28}
-                    maxNativeZoom={24}
-                    zIndex={100 + index}
-                    eventHandlers={{
-                      load: () => index === 0 && setImageLoading(false),
-                      tileerror: (e) => {
-                        console.error("Tile load error for", layerType, e);
-                      },
-                    }}
-                  />
+              {/* Render selected layers.
+                  When 2-3 single bands are chosen, combine into ONE RGB tile so they form
+                  a proper composite (avoids the top-layer-covers-everything problem).
+                  When indices / composites are selected alongside others, render separately
+                  at reduced opacity so all layers are visible. */}
+              {(() => {
+                const configs = getLayerConfigs();
+                const singleBandLayers = selectedLayers.filter(
+                  (lt) => configs[lt]?.bidx && !configs[lt]?.expression && configs[lt].bidx.split(",").length === 1
                 );
-              })}
+                const complexLayers = selectedLayers.filter(
+                  (lt) => !singleBandLayers.includes(lt)
+                );
+                const filename = getCurrentFilename();
+
+                // --- Case 1: 2–3 single bands only → one merged RGB tile ---
+                if (singleBandLayers.length >= 2 && complexLayers.length === 0 && filename) {
+                  const bandBidx = singleBandLayers.slice(0, 3).map((lt) => configs[lt].bidx).join(",");
+                  const combinedUrl = getTileUrl(filename, { bidx: bandBidx, rescale: "500,10000", nodata: 65535 });
+                  return (
+                    <TileLayer
+                      key="combined-bands"
+                      url={combinedUrl}
+                      opacity={layerOpacity}
+                      tms={false}
+                      maxZoom={28}
+                      maxNativeZoom={24}
+                      zIndex={100}
+                      eventHandlers={{
+                        load: () => setImageLoading(false),
+                        tileerror: (e) => console.error("Tile error: combined bands", e),
+                      }}
+                    />
+                  );
+                }
+
+                // --- Case 2: indices / composites (or single band alone) → separate layers ---
+                const perLayerOpacity = selectedLayers.length > 1 ? layerOpacity * 0.8 : layerOpacity;
+                return selectedLayers.map((layerType, index) => {
+                  const layerTileUrl = buildTileUrl(layerType);
+                  if (!layerTileUrl) return null;
+                  return (
+                    <TileLayer
+                      key={layerType}
+                      url={layerTileUrl}
+                      opacity={perLayerOpacity}
+                      tms={false}
+                      maxZoom={28}
+                      maxNativeZoom={24}
+                      zIndex={100 + index}
+                      eventHandlers={{
+                        load: () => index === 0 && setImageLoading(false),
+                        tileerror: (e) => console.error("Tile load error for", layerType, e),
+                      }}
+                    />
+                  );
+                });
+              })()}
               <FitBounds bounds={mapBounds} />
               <MapClickHandler onClick={handleMapClick} />
             </MapContainer>
@@ -1532,7 +1586,7 @@ const DroneImagerySection = ({ farmId, farmName = "Farm", cropType = null }) => 
               <div className="map-layer-legend">
                 <div className="legend-title">Active Layers</div>
                 {selectedLayers.map((layerType, index) => {
-                  const config = LAYER_CONFIGS[layerType] || { name: layerType };
+                  const config = getLayerConfigs()[layerType] || { name: layerType };
                   return (
                     <div key={layerType} className="legend-item">
                       <span className="legend-order">{index + 1}</span>

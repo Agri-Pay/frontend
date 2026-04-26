@@ -57,6 +57,9 @@ export async function analyzeByFilename(
  *   2. Large files (100+ MB) stream to the server instead of buffering
  *   3. The request won't silently time out in the browser
  *
+ * Suitable for files up to ~50 MB (single request finishes well within the
+ * Cloudflare 100 s timeout).  For larger files use uploadAndAnalyzeChunked().
+ *
  * @param {File} file
  * @param {string} [modelId]
  * @param {function} [onProgress]  called with { percent, loaded, total }
@@ -108,26 +111,118 @@ export function uploadAndAnalyze(file, modelId = "wheat_plant_counter_v1", onPro
 }
 
 /**
- * Submit analysis for an image by Google Drive URL (or any public HTTPS URL).
- * The server will download the file itself — nothing is uploaded from the browser.
+ * Upload a large file using the chunked upload protocol and start analysis.
  *
- * @param {string} imageUrl  Google Drive share link or direct image URL
+ * Splits the file into 50 MB chunks so each individual HTTP request finishes
+ * well within the Cloudflare 100 s timeout.  Passes analyze=true to the
+ * complete endpoint so the backend submits an ML job instead of registering
+ * the file as imagery.
+ *
+ * @param {File} file
  * @param {string} [modelId]
+ * @param {function} [onProgress]  called with { percent, loaded, total }
+ * @returns {Promise<{job_id: string}>}
  */
-export async function analyzeFromUrl(imageUrl, modelId = "wheat_plant_counter_v1") {
-  const formData = new FormData();
-  formData.append("image_url", imageUrl);
-  formData.append("model_id", modelId);
-
-  const res = await fetch(`${COMPUTE_API}/upload`, {
+export async function uploadAndAnalyzeChunked(
+  file,
+  modelId = "wheat_plant_counter_v1",
+  onProgress = null,
+) {
+  // Step 1: init — farm_id omitted so backend enters analyze mode
+  const initResp = await fetch(`${COMPUTE_API}/api/v1/imagery/upload/init`, {
     method: "POST",
-    body: formData,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      filename: file.name,
+      total_size: file.size,
+      content_type: file.type || "image/tiff",
+    }),
+  });
+  if (!initResp.ok) {
+    const err = await initResp.json().catch(() => ({}));
+    throw new Error(err.detail || `Upload init failed (${initResp.status})`);
+  }
+  const { upload_id, chunk_size } = await initResp.json();
+
+  // Step 2: send chunks
+  let offset = 0;
+  while (offset < file.size) {
+    const end = Math.min(offset + chunk_size, file.size);
+    const chunk = file.slice(offset, end);
+    const chunkBytes = await chunk.arrayBuffer();
+
+    const chunkResp = await fetch(
+      `${COMPUTE_API}/api/v1/imagery/upload/${upload_id}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/octet-stream",
+          "Content-Range": `bytes ${offset}-${end - 1}/${file.size}`,
+        },
+        body: chunkBytes,
+      },
+    );
+    if (!chunkResp.ok) {
+      const err = await chunkResp.json().catch(() => ({}));
+      throw new Error(err.detail || `Chunk upload failed at offset ${offset} (${chunkResp.status})`);
+    }
+
+    offset = end;
+    if (onProgress) {
+      onProgress({
+        loaded: offset,
+        total: file.size,
+        percent: Math.round((offset / file.size) * 100),
+      });
+    }
+  }
+
+  // Step 3: complete with analyze=true
+  const completeResp = await fetch(
+    `${COMPUTE_API}/api/v1/imagery/upload/${upload_id}/complete?analyze=true&model_id=${encodeURIComponent(modelId)}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    },
+  );
+  if (!completeResp.ok) {
+    const err = await completeResp.json().catch(() => ({}));
+    throw new Error(err.detail || `Upload finalization failed (${completeResp.status})`);
+  }
+  return completeResp.json(); // { job_id, status, message }
+}
+
+/**
+ * Submit a plant-count analysis for a Google Drive file.
+ *
+ * The server downloads the file in the background — nothing is uploaded from
+ * the browser.  Returns a job_id immediately for polling.
+ *
+ * @param {string} fileId   Google Drive file ID (from listDriveFiles)
+ * @param {string} fileName Original filename (from listDriveFiles)
+ * @param {string} [modelId]
+ * @returns {Promise<{job_id: string}>}
+ */
+export async function analyzeFromDriveFile(
+  fileId,
+  fileName,
+  modelId = "wheat_plant_counter_v1",
+) {
+  const res = await fetch(`${COMPUTE_API}/api/v1/analyze/from-drive`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ file_id: fileId, file_name: fileName, model_id: modelId }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || `Request failed (HTTP ${res.status})`);
+    const detail = err.detail;
+    const msg = Array.isArray(detail)
+      ? detail.map((e) => e.msg).join("; ")
+      : (typeof detail === "string" ? detail : `Request failed (HTTP ${res.status})`);
+    throw new Error(msg);
   }
-  return res.json(); // { job_id, status, progress, message }
+  return res.json(); // { job_id, status, message }
 }
 
 /**
@@ -180,12 +275,8 @@ export async function verifyMilestone(milestoneId) {
 /**
  * Check for cached ML results for a specific flight and model.
  * Returns the most recent result row, or null.
- * The model-specific output lives in result_data (JSONB).
  */
-export async function getCachedResults(
-  flightId,
-  modelId
-) {
+export async function getCachedResults(flightId, modelId) {
   const { data, error } = await supabase
     .from("ml_results")
     .select("*")

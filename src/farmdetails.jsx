@@ -291,12 +291,14 @@ ChartJS.register(
 import Spinner from "./spinner";
 import {
   uploadAndAnalyze,
-  analyzeFromUrl,
+  uploadAndAnalyzeChunked,
+  analyzeFromDriveFile,
   getJobStatus as getComputeJobStatus,
   getResultImageBlob,
   saveResults as saveComputeResults,
   verifyMilestone as runMlVerification,
 } from "./computeService";
+import { listDriveFiles } from "./droneImageryService";
 // NDVI Chart Component (from AgroMonitoring)
 const NdviChart = ({ data }) => {
   const chartData = {
@@ -975,13 +977,41 @@ const FarmDetailsPage = () => {
     try {
       let job_id;
       if (isDrive) {
-        ({ job_id } = await analyzeFromUrl(pcDriveUrl.trim()));
-      } else {
-        ({ job_id } = await uploadAndAnalyze(
-          pcFile,
+        // Resolve the Drive URL to a file entry, then kick off server-side download
+        let driveFiles;
+        try {
+          const result = await listDriveFiles(pcDriveUrl.trim());
+          driveFiles = result.files;
+        } catch (e) {
+          throw new Error(`Could not read Drive link: ${e.message}`);
+        }
+        if (!driveFiles || driveFiles.length === 0) {
+          throw new Error("No image files found at that Drive link. Make sure the file is shared publicly.");
+        }
+        const driveFile = driveFiles[0];
+        setPcMessage(`Found: ${driveFile.name} — submitting analysis…`);
+        ({ job_id } = await analyzeFromDriveFile(
+          driveFile.id,
+          driveFile.name,
           "wheat_plant_counter_v1",
-          ({ percent }) => setPcUploadProgress(percent),
         ));
+      } else {
+        // Large files: use chunked upload (each chunk << 100 s → no Cloudflare 524)
+        const CHUNK_THRESHOLD = 50 * 1024 * 1024;
+        if (pcFile.size > CHUNK_THRESHOLD) {
+          setPcMessage("Uploading in chunks (large file)…");
+          ({ job_id } = await uploadAndAnalyzeChunked(
+            pcFile,
+            "wheat_plant_counter_v1",
+            ({ percent }) => setPcUploadProgress(percent),
+          ));
+        } else {
+          ({ job_id } = await uploadAndAnalyze(
+            pcFile,
+            "wheat_plant_counter_v1",
+            ({ percent }) => setPcUploadProgress(percent),
+          ));
+        }
       }
       setPcJobId(job_id);
       setPcStatus("processing");
