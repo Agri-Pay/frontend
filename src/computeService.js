@@ -9,6 +9,25 @@ import { supabase } from "./createclient";
 const COMPUTE_API =
   import.meta.env.VITE_COMPUTE_API_URL ?? "http://localhost:8001";
 
+async function errorMessageFromResponse(res, fallback) {
+  const err = await res.json().catch(() => ({}));
+  const detail = err.detail;
+
+  if (Array.isArray(detail)) {
+    return detail
+      .map((item) => {
+        const loc = Array.isArray(item.loc) ? item.loc.join(".") : item.loc;
+        return loc ? `${loc}: ${item.msg}` : item.msg;
+      })
+      .filter(Boolean)
+      .join("; ");
+  }
+
+  if (typeof detail === "string") return detail;
+  if (detail && typeof detail === "object") return JSON.stringify(detail);
+  return fallback;
+}
+
 // ---------------------------------------------------------------------------
 // Model discovery
 // ---------------------------------------------------------------------------
@@ -139,8 +158,12 @@ export async function uploadAndAnalyzeChunked(
     }),
   });
   if (!initResp.ok) {
-    const err = await initResp.json().catch(() => ({}));
-    throw new Error(err.detail || `Upload init failed (${initResp.status})`);
+    throw new Error(
+      await errorMessageFromResponse(
+        initResp,
+        `Upload init failed (${initResp.status})`,
+      ),
+    );
   }
   const { upload_id, chunk_size } = await initResp.json();
 
@@ -163,8 +186,12 @@ export async function uploadAndAnalyzeChunked(
       },
     );
     if (!chunkResp.ok) {
-      const err = await chunkResp.json().catch(() => ({}));
-      throw new Error(err.detail || `Chunk upload failed at offset ${offset} (${chunkResp.status})`);
+      throw new Error(
+        await errorMessageFromResponse(
+          chunkResp,
+          `Chunk upload failed at offset ${offset} (${chunkResp.status})`,
+        ),
+      );
     }
 
     offset = end;
@@ -187,10 +214,41 @@ export async function uploadAndAnalyzeChunked(
     },
   );
   if (!completeResp.ok) {
-    const err = await completeResp.json().catch(() => ({}));
-    throw new Error(err.detail || `Upload finalization failed (${completeResp.status})`);
+    throw new Error(
+      await errorMessageFromResponse(
+        completeResp,
+        `Upload finalization failed (${completeResp.status})`,
+      ),
+    );
   }
   return completeResp.json(); // { job_id, status, message }
+}
+
+/**
+ * List plant-counter-compatible image files from a Google Drive URL/folder/ID.
+ */
+export async function listDriveImageFiles(input) {
+  const resp = await fetch(`${COMPUTE_API}/api/v1/imagery/drive/list-files`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ input, allowed_types: "image" }),
+  });
+
+  if (!resp.ok) {
+    throw new Error(
+      await errorMessageFromResponse(
+        resp,
+        `Failed to list Drive files (${resp.status})`,
+      ),
+    );
+  }
+
+  const data = await resp.json();
+  return {
+    type: data.type,
+    files: data.files,
+    skippedCount: data.skipped_count,
+  };
 }
 
 /**
@@ -215,12 +273,9 @@ export async function analyzeFromDriveFile(
     body: JSON.stringify({ file_id: fileId, file_name: fileName, model_id: modelId }),
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    const detail = err.detail;
-    const msg = Array.isArray(detail)
-      ? detail.map((e) => e.msg).join("; ")
-      : (typeof detail === "string" ? detail : `Request failed (HTTP ${res.status})`);
-    throw new Error(msg);
+    throw new Error(
+      await errorMessageFromResponse(res, `Request failed (HTTP ${res.status})`),
+    );
   }
   return res.json(); // { job_id, status, message }
 }

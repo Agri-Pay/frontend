@@ -293,12 +293,12 @@ import {
   uploadAndAnalyze,
   uploadAndAnalyzeChunked,
   analyzeFromDriveFile,
+  listDriveImageFiles,
   getJobStatus as getComputeJobStatus,
   getResultImageBlob,
   saveResults as saveComputeResults,
   verifyMilestone as runMlVerification,
 } from "./computeService";
-import { listDriveFiles } from "./droneImageryService";
 // NDVI Chart Component (from AgroMonitoring)
 const NdviChart = ({ data }) => {
   const chartData = {
@@ -980,7 +980,7 @@ const FarmDetailsPage = () => {
         // Resolve the Drive URL to a file entry, then kick off server-side download
         let driveFiles;
         try {
-          const result = await listDriveFiles(pcDriveUrl.trim());
+          const result = await listDriveImageFiles(pcDriveUrl.trim());
           driveFiles = result.files;
         } catch (e) {
           throw new Error(`Could not read Drive link: ${e.message}`);
